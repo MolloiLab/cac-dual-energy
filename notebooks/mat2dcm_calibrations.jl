@@ -14,12 +14,15 @@ macro bind(def, element)
     end
 end
 
+# ╔═╡ eb16877c-b1ca-442b-933e-f7878e032289
+begin
+	using DrWatson
+	@quickactivate "cac-dual-energy"
+end
+
 # ╔═╡ c25c8d78-8fbb-4714-bd64-1d907e699d13
 # ╠═╡ show_logs = false
 begin
-	using Pkg
-	Pkg.activate(".")
-
     using PlutoUI
     using CairoMakie
     using MAT
@@ -62,16 +65,15 @@ begin
         for _size in sizes
             for density in densities
 				
-
-                ## Path to the original dataset of .mat files
-                path_root = joinpath(dirname(pwd()), "mat_calibration_bone_marrow", _size[1], string(density))
+				path_root = datadir("mat_calibration_bone_marrow",_size[1],string(density))
+				
 				path = string(path_root, "rod",energy,"kV",_size[2],".mat")
                 vars1 = matread(path)
                 array1 = vars1[string("I")]
                 array1 = Int16.(round.(array1))
 
                 ## Path to a known DICOM files
-				dcm_path = joinpath(dirname(pwd()),"sample.dcm")
+				dcm_path = datadir("sample.dcm")
 
                 dcm = dcm_parse(dcm_path)
                 dcm[tag"Pixel Data"] = array1
@@ -79,8 +81,7 @@ begin
                 dcm[tag"Rows"] = size(array1, 1)
                 dcm[tag"Columns"] = size(array1, 2)
 
-                ## Path to output the newly creted DICOM files
-				output_root1 = string(dirname(dirname(dirname(path))), "/dcms_calibration/", _size[1])
+				output_root1 = datadir("dcms_calibration",_size[1])
 				
                 if !isdir(output_root1)
                     mkdir(output_root1)
@@ -96,7 +97,9 @@ begin
 
 				global output_path
                 output_path = string(output_root2, "/", density, ".dcm")
+				#still have to change this line to use save()
                 dcm_write(output_path, dcm)
+				#save(output_path,dcm)
 				@info output_path
             end
         end
@@ -121,6 +124,7 @@ vol_combined = load_dcm_array(dcmdir_combined);
 heatmap(transpose(vol_combined[:, :, c]); colormap=:grays)
 
 # ╔═╡ Cell order:
+# ╠═eb16877c-b1ca-442b-933e-f7878e032289
 # ╠═c25c8d78-8fbb-4714-bd64-1d907e699d13
 # ╠═8c78db8b-5dc8-403a-841e-e1f3faf1549d
 # ╠═9a5a408f-d6d8-445e-b6e8-7e3eb4636ab4

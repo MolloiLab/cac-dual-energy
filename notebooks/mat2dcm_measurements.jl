@@ -14,12 +14,15 @@ macro bind(def, element)
     end
 end
 
+# ╔═╡ 89014bd0-3d2f-4ed5-a4ec-bfa36a1b722d
+begin
+	using DrWatson
+	@quickactivate "cac-dual-energy"
+end
+
 # ╔═╡ 71621e0e-0b10-4398-95c1-c73cab737e5b
 # ╠═╡ show_logs = false
 begin
-	using Pkg
-	Pkg.activate(".")
-
     using PlutoUI
     using CairoMakie
     using MAT
@@ -66,17 +69,27 @@ begin
 					end
 					
 					## Path to the original dataset of .mat files
-					path_root = string(joinpath(dirname(pwd()),"mat_measurement_bone_marrow/","SIZE/"),size_folder,"/",density,"energy",string(energy),file_size,".mat")
+					home_root = datadir(
+						"mat_measurement_bone_marrow",
+						"SIZE",
+						size_folder
+					)
+					
+					path_root = string(home_root,
+						"/",
+						density,
+						"energy",
+						string(energy),
+						file_size,
+						".mat"
+					)
 					
 					vars1 = matread(path_root)
 					array1 = vars1[string("I")]
 					array1 = Int16.(round.(array1))
 					
-					## Path to known DICOM file
-					root = joinpath(dirname(pwd()))
-					dcm_file_name = "sample.dcm"
-					
-					dcm_path = joinpath(root,dcm_file_name)
+					## Path to known DICOM file				
+					dcm_path = datadir("sample.dcm")
 					
 					dcm = dcm_parse(dcm_path)
 					dcm[tag"Pixel Data"] = array1
@@ -85,12 +98,25 @@ begin
 					dcm[tag"Columns"] = size(array1, 2)
 	
 					## Path to output the newly creted DICOM files
-					output_root = joinpath(root,"dcms_measurement_new", size_folder, density, string(energy))
+					output_root = datadir(
+						"dcms_measurement_new",
+						size_folder,
+						density,
+						string(energy)
+					)
+					
 					if !isdir(output_root)
 						mkpath(output_root)
 					end
 					global output_path
-					output_path = joinpath(output_root, string(file_num) * ".dcm")
+					
+					output_path = datadir(
+						"dcms_measurement_new",
+						size_folder,
+						density,
+						string(energy),
+						string(file_num)*".dcm"
+					)
 					dcm_write(output_path, dcm)
 						
 				end
@@ -114,17 +140,20 @@ begin
 					end
 					
 					## Path to the original dataset of .mat files
-					path_root = string(joinpath(dirname(pwd()),"mat_measurement_bone_marrow/","SIZE1/"),size_folder1,"/",density,"energy",string(energy),file_size,".mat")
+					path_root = datadir(
+						"mat_measurement_bone_marrow",
+						"SIZE1",
+						size_folder1,
+						density*"energy"*string(energy)*file_size*".mat"	
+					)
+					#path_root = string(joinpath(dirname(pwd()),"mat_measurement_bone_marrow/","SIZE1/"),size_folder1,"/",density,"energy",string(energy),file_size,".mat")
 					
 					vars1 = matread(path_root)
 					array1 = vars1[string("I")]
 					array1 = Int16.(round.(array1))
 					
 					## Path to known DICOM file
-					root = joinpath(dirname(pwd()))
-					dcm_file_name = "sample.dcm"
-					
-					dcm_path = joinpath(root,dcm_file_name)
+					dcm_path = datadir("sample.dcm")
 					
 					dcm = dcm_parse(dcm_path)
 					dcm[tag"Pixel Data"] = array1
@@ -133,13 +162,22 @@ begin
 					dcm[tag"Columns"] = size(array1, 2)
 	
 					## Path to output the newly creted DICOM files
-					output_root = joinpath(root,"dcms_measurement_new", size_folder1, density, string(energy))
+					output_root = datadir(
+						"dcms_measurement_new",
+						size_folder1,
+						density,
+						string(energy)
+					)
+
+					
+					#output_root = joinpath(root,"dcms_measurement_new", size_folder1, density, string(energy))
 					if !isdir(output_root)
 						mkpath(output_root)
 					end
 					global output_path
 					output_path = joinpath(output_root, string(file_num) * ".dcm")
-					dcm_write(output_path, dcm)
+					#dcm_write(output_path, dcm)
+					save(output_path,dcm)
 						
 				end
 			end
@@ -173,6 +211,7 @@ vol_combined = load_dcm_array(dcmdir_combined);
 heatmap(transpose(vol_combined[:, :, c]); colormap=:grays)
 
 # ╔═╡ Cell order:
+# ╠═89014bd0-3d2f-4ed5-a4ec-bfa36a1b722d
 # ╠═71621e0e-0b10-4398-95c1-c73cab737e5b
 # ╠═3982c500-52e3-4dad-ac99-e6423ecc3282
 # ╠═ee37a9bf-545e-4c68-b22d-0c3fce8df0ba

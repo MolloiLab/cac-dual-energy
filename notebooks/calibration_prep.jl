@@ -14,13 +14,16 @@ macro bind(def, element)
     end
 end
 
+# ╔═╡ b7334ee2-9e52-49da-9ae2-9ea31df8b171
+begin
+	using DrWatson
+	@quickactivate "cac-dual-energy"
+end
+
 # ╔═╡ 01fe7259-ef09-45a0-bf1b-7b1276aaad3d
 # ╠═╡ show_logs = false
 begin
-	using Pkg
-	Pkg.activate(".")
-
-    using PlutoUI, CairoMakie, Statistics, ImageMorphology, CSV, DataFrames, DICOM, DICOMUtils, LsqFit, CalciumScoring
+    using PlutoUI, CairoMakie, Statistics, ImageMorphology, CSV, DataFrames, DICOM, DICOMUtils, LsqFit, CalciumScoring, CSVFiles
 	using StatsBase: quantile!, rmsd
 end
 
@@ -35,11 +38,12 @@ md"""
 # ╔═╡ 4cfef276-751a-4746-9b5b-7bf38bb24b79
 begin
 	SIZES = ["Small", "Medium", "Large"]
-	SIZE = SIZES[1]
+	#change number to select different size and save different csv
+	SIZE = SIZES[3]
 end
 
 # ╔═╡ b9d34b46-5844-4830-ae59-eef44831b138
-root = joinpath(dirname(pwd()), "dcms_calibration", SIZE)
+root = datadir("dcms_calibration", "$(SIZE)")
 
 # ╔═╡ 02e01a44-9c7b-4881-9a2c-21125da82e9a
 md"""
@@ -47,7 +51,7 @@ md"""
 """
 
 # ╔═╡ 624f9db8-2fe9-4a11-b90f-402d397b3709
-path = string(root, "/80")
+path = datadir(root, "80")
 
 # ╔═╡ 4666ed27-97bf-4096-a939-b8ab204697ab
 begin
@@ -160,7 +164,7 @@ md"""
 """
 
 # ╔═╡ a746d138-8031-4fb1-aef3-5d0e1d9f733c
-path2 = string(root, "/135")
+path2 = datadir(root, "135")
 
 # ╔═╡ dd8431bc-5036-4ca7-9cb3-a0b5093ced18
 begin
@@ -291,13 +295,14 @@ md"""
 # ╔═╡ 65a01fd9-15ee-4b03-89af-6dfe91693571
 df_params = DataFrame(p = ps)
 
-# ╔═╡ 9f36fac1-c907-49aa-b3df-c92db6b03570
-path_csv = string(dirname(pwd()), "/calibration_params/", SIZE, ".csv")
+# ╔═╡ 566aad05-2ef6-4540-80a4-cd77e849126d
+file_name = string("$(SIZE)",".csv")
 
-# ╔═╡ 17829cd4-f6d1-40da-a0f8-1c18e2cc735c
-CSV.write(path_csv, df_params)
+# ╔═╡ 54b765ae-a3d8-4242-99a4-c3c60c42d6e5
+save(datadir("calibration_params",file_name),df_params)
 
 # ╔═╡ Cell order:
+# ╠═b7334ee2-9e52-49da-9ae2-9ea31df8b171
 # ╠═01fe7259-ef09-45a0-bf1b-7b1276aaad3d
 # ╠═86e2dfb0-7fbb-11ec-26c0-5d55c499ebc6
 # ╟─29c32fb0-f961-4794-9f9f-0a1f91898111
@@ -315,7 +320,7 @@ CSV.write(path_csv, df_params)
 # ╟─9fb33d34-e6f5-4956-b8b1-77ce838a335c
 # ╠═a2fb9d8b-2168-4a0d-bf37-64d8c7ed149c
 # ╠═589e889e-e3b7-4971-9cb9-37bbf8e9ee1b
-# ╟─40430578-a0e1-400d-bbd3-e7cc281cd0be
+# ╠═40430578-a0e1-400d-bbd3-e7cc281cd0be
 # ╠═715a1532-0ab2-4a99-b886-60ed488760a7
 # ╠═a5d5d874-6ea8-42b2-a691-de6881446a26
 # ╟─55038797-761f-453b-866f-e13f832b011c
@@ -338,5 +343,5 @@ CSV.write(path_csv, df_params)
 # ╠═61c98667-82e6-4583-a328-f2e2c48474c6
 # ╟─3b432411-31fa-48ec-b7fc-19807b193447
 # ╠═65a01fd9-15ee-4b03-89af-6dfe91693571
-# ╠═9f36fac1-c907-49aa-b3df-c92db6b03570
-# ╠═17829cd4-f6d1-40da-a0f8-1c18e2cc735c
+# ╠═566aad05-2ef6-4540-80a4-cd77e849126d
+# ╠═54b765ae-a3d8-4242-99a4-c3c60c42d6e5

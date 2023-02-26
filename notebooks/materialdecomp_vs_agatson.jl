@@ -4,90 +4,32 @@
 using Markdown
 using InteractiveUtils
 
-# ╔═╡ 05f80d21-203e-4934-8e4d-dfc843919918
+# ╔═╡ 6e6f2a53-f883-4b1c-917f-8e50219e7611
 begin
 	using DrWatson
 	@quickactivate "cac-dual-energy"
 end
 
-# ╔═╡ a8646d6e-5c7b-11ed-2556-73f2b13f709d
-# ╠═╡ show_logs = false
+# ╔═╡ 0b2b31a5-29df-4344-9ce8-a1313f9e01d0
 begin
-    using PlutoUI, CairoMakie, Statistics, ImageMorphology, CSV, DataFrames, DICOM, DICOMUtils
-	using StatsBase: quantile!
+    using PlutoUI, Statistics, CSV, DataFrames, GLM, CairoMakie, HypothesisTests, Colors, MLJBase, DICOM, DICOMUtils, CalciumScoring, ImageMorphology, ImageFiltering, Noise
+    using StatsBase: quantile!,rmsd
 end
 
-# ╔═╡ 87d68ed1-6d7b-4552-8680-4a8901964109
+# ╔═╡ 8fc48986-5362-4303-aedc-cce3cb46863b
+include(srcdir("helper_functions.jl")); include(srcdir("masks.jl"));
+
+# ╔═╡ 3acf4253-394a-4ff5-be3b-32a49e0f947e
 TableOfContents()
 
-# ╔═╡ 4676198a-2063-4d98-9b11-af5acfa32245
-md"""
-# Helper Functions
-"""
-
-# ╔═╡ b32917fc-df2c-42eb-8e7a-cc2c564f2e22
-function collect_tuple(tuple_array)
-    row_num = size(tuple_array)
-    col_num = length(tuple_array[1])
-    container = zeros(Int64, row_num..., col_num)
-    for i in 1:length(tuple_array)
-        container[i, :] = collect(tuple_array[i])
-    end
-    return container
+# ╔═╡ e4a717b2-4b60-49df-b948-76ddec11f35f
+begin
+	sizes = ["Small", "Medium", "Large", "Small1", "Medium1", "Large1"]
+	densities = ["Density1", "Density2", "Density3"]
+	energies = [80, 135]
 end
 
-# ╔═╡ 0b83ca47-1734-4172-b3c8-0290e07bbece
-function overlay_mask_bind(mask)
-    indices = findall(x -> x == 1, mask)
-    indices = Tuple.(indices)
-    label_array = collect_tuple(indices)
-    zs = unique(label_array[:, 3])
-    return PlutoUI.Slider(1:length(zs); default=25, show_value=true)
-end;
-
-# ╔═╡ 860c6c90-b07f-472b-b364-9a28bc84434c
-function overlay_mask_plot(array, mask, var, title::AbstractString)
-    indices = findall(x -> x == 1, mask)
-    indices = Tuple.(indices)
-    label_array = collect_tuple(indices)
-    zs = unique(label_array[:, 3])
-    indices_lbl = findall(x -> x == zs[var], label_array[:, 3])
-
-    fig = Figure()
-    ax = Makie.Axis(fig[1, 1])
-    ax.title = title
-    heatmap!((array[:, :, zs[var]]); colormap=:grays)
-    scatter!(
-        label_array[:, 1][indices_lbl],
-        label_array[:, 2][indices_lbl];
-        markersize=1,
-        color=:red,
-    )
-    return fig
-end;
-
-# ╔═╡ 502abd7e-c123-463b-8581-9b886c87fa29
-function predict_concentration(x, y, p)
-	A = p[1] + (p[2] * x) + (p[3] * y) + (p[4] * x^2) + (p[5] * x * y) + (p[6] * y^2)
-	B = 1 + (p[7] * x) + (p[8] * y)
-	F = A / B
-end
-
-# ╔═╡ e0b52502-2075-47c0-a465-af93db8110de
-sizes_folders = ["Small", "Medium", "Large", "Small1", "Medium1", "Large1"]
-
-# ╔═╡ 2750bb98-c026-440c-9d89-ebf49dac1676
-sizes = sizes_folders
-
-# ╔═╡ ba3b914d-758c-430d-8845-34f7b6c57f50
-densities = ["Density1", "Density2", "Density3"]
-
-#densities=["Density1"]
-
-# ╔═╡ fad04012-8c80-45b5-9b44-7f682f4a28ff
-energies = [80, 135]
-
-# ╔═╡ 97d59370-e42c-4b5d-9551-49281db1cc84
+# ╔═╡ c53b95fa-407c-4ba4-b031-5d0543261987
 calcium_densities = [
 	[733, 733, 733, 411, 411, 411, 151, 151, 151],
 	[669, 669, 669, 370, 370, 370, 90, 90, 90],
@@ -97,12 +39,12 @@ calcium_densities = [
 	[199, 199, 199, 41, 41, 41, 27, 27, 27]
 ]
 
-# ╔═╡ c9f111b6-1e66-459f-a1ff-66b44f3ae785
+# ╔═╡ 831886a2-f222-4cc3-a5c5-87c676fa4d01
 md"""
 # Load Calibration Parameters
 """
 
-# ╔═╡ 565b608a-f6a8-4579-9efd-37522dc9cde5
+# ╔═╡ ee139e88-4619-4636-8db8-b70917733643
 begin
 	param_base_pth = datadir("calibration_params/")
 	small_pth = string(param_base_pth,"Small.csv")
@@ -114,15 +56,16 @@ begin
 	large_param = DataFrame(CSV.File(large_pth))
 end;
 
-# ╔═╡ e093bf43-6e8a-4f89-8117-a578712ad822
+# ╔═╡ 3649478a-b065-4df6-9210-8a5e9fbb5010
 md"""
 # Loop
 """
 
-# ╔═╡ 24d92c10-9463-40a2-913c-94ed3728a169
+# ╔═╡ 9ecdd5e4-8e78-47af-a26e-2fc30a929ddd
 begin
-	dfs = []
-	for _size in sizes_folders 
+	dfs_m = []
+	dfs_a = []
+	for _size in sizes 
 		for density in densities
 			@info _size, density
 			
@@ -151,62 +94,65 @@ begin
 			
 			dcm = dcmdir_parse(pth)
 			dcm_array = load_dcm_array(dcm)
-
-			dilate_mask_S_HD = dilate(dilate(mask_S_HD))
+			
+			#high density masks
+			dilate_mask_S_HD = dilate_mask_small(mask_S_HD)
 			dilate_mask_S_HD_3D = Array{Bool}(undef, size(dcm_array))
 			for z in 1:size(dcm_array, 3)
 				dilate_mask_S_HD_3D[:, :, z] = dilate_mask_S_HD
 			end
 			
-			dilate_mask_M_HD = dilate(dilate(mask_M_HD))
+			dilate_mask_M_HD = dilate_mask_medium(mask_M_HD)
 			dilate_mask_M_HD_3D = Array{Bool}(undef, size(dcm_array))
 			for z in 1:size(dcm_array, 3)
 				dilate_mask_M_HD_3D[:, :, z] = dilate_mask_M_HD
 			end
 			
-			dilate_mask_L_HD = dilate(dilate(mask_L_HD))
+			dilate_mask_L_HD = dilate_mask_large(mask_L_HD)
 			dilate_mask_L_HD_3D = Array{Bool}(undef, size(dcm_array))
 			for z in 1:size(dcm_array, 3)
 				dilate_mask_L_HD_3D[:, :, z] = dilate_mask_L_HD
 			end
 			
-			dilate_mask_S_MD = dilate(dilate(mask_S_MD))
+			#medium density masks
+			dilate_mask_S_MD = dilate_mask_small(mask_S_MD)
 			dilate_mask_S_MD_3D = Array{Bool}(undef, size(dcm_array))
 			for z in 1:size(dcm_array, 3)
 				dilate_mask_S_MD_3D[:, :, z] = dilate_mask_S_MD
 			end
 			
-			dilate_mask_M_MD = dilate(dilate(mask_M_MD))
+			dilate_mask_M_MD = dilate_mask_medium(mask_M_MD)
 			dilate_mask_M_MD_3D = Array{Bool}(undef, size(dcm_array))
 			for z in 1:size(dcm_array, 3)
 				dilate_mask_M_MD_3D[:, :, z] = dilate_mask_M_MD
 			end
 			
-			dilate_mask_L_MD = dilate(dilate(mask_L_MD))
+			dilate_mask_L_MD = dilate_mask_large(mask_L_MD)
 			dilate_mask_L_MD_3D = Array{Bool}(undef, size(dcm_array))
 			for z in 1:size(dcm_array, 3)
 				dilate_mask_L_MD_3D[:, :, z] = dilate_mask_L_MD
 			end
 			
-			dilate_mask_S_LD = dilate(dilate(mask_S_LD))
+			#low density masks
+			dilate_mask_S_LD = dilate_mask_small(mask_S_LD)
 			dilate_mask_S_LD_3D = Array{Bool}(undef, size(dcm_array))
 			for z in 1:size(dcm_array, 3)
 				dilate_mask_S_LD_3D[:, :, z] = dilate_mask_S_LD
 			end
 			
-			dilate_mask_M_LD = dilate(dilate(mask_M_LD))
+			dilate_mask_M_LD = dilate_mask_medium(mask_M_LD)
 			dilate_mask_M_LD_3D = Array{Bool}(undef, size(dcm_array))
 			for z in 1:size(dcm_array, 3)
 				dilate_mask_M_LD_3D[:, :, z] = dilate_mask_M_LD
 			end
 			
-			dilate_mask_L_LD = dilate(dilate(mask_L_LD))
+			dilate_mask_L_LD = dilate_mask_large(mask_L_LD)
 			dilate_mask_L_LD_3D = Array{Bool}(undef, size(dcm_array))
 			for z in 1:size(dcm_array, 3)
 				dilate_mask_L_LD_3D[:, :, z] = dilate_mask_L_LD
 			end
 
-			## Low Density
+			## Low energy
 			pixel_size = DICOMUtils.get_pixel_size(dcm[1].meta)
 			masks_3D = Array{Bool}(undef, size(dcm_array))
 			for z in 1:size(dcm_array, 3)
@@ -214,7 +160,7 @@ begin
 			end
 			means1 = [mean(dcm_array[dilate_mask_L_HD_3D]), mean(dcm_array[dilate_mask_M_HD_3D]), mean(dcm_array[dilate_mask_S_HD_3D]), mean(dcm_array[dilate_mask_L_MD_3D]), mean(dcm_array[dilate_mask_M_MD_3D]), mean(dcm_array[dilate_mask_S_MD_3D]), mean(dcm_array[dilate_mask_L_LD_3D]), mean(dcm_array[dilate_mask_M_LD_3D]), mean(dcm_array[dilate_mask_S_LD_3D])]
 
-			## High Density
+			## High energy
 			pth2 = datadir("dcms_measurement_new/", _size, density, string(energies[2]))
 			dcm2 = dcmdir_parse(pth2)
 			dcm_array2 = load_dcm_array(dcm2)
@@ -259,7 +205,7 @@ begin
 			vols2 = vcat(vol2, vol2, vol2) # cm^3
 			gt_masses = calcium_density .* vols2 .* 3
 
-			df_results = DataFrame(
+			df = DataFrame(
 				phantom_size = _size,
 				density = density,
 				insert_sizes = ["Large", "Medium", "Small"],
@@ -271,38 +217,129 @@ begin
 				predicted_mass_ld = predicted_masses[7:9],
 			)
 
-			push!(dfs, df_results)
+			push!(dfs_m, df)
+
+			##Agatson 
+			header = dcm[1].meta
+			alg = Agatston()
+			pixel_size = DICOMUtils.get_pixel_size(header)	
+			avg_mass_cals = 0.0007975563520531468
+
+			#high density
+
+			overlayed_mask_s_hd = create_mask(dcm_array, dilate_mask_S_HD_3D);
+			agat_s_hd, mass_s_hd = score(overlayed_mask_s_hd, pixel_size, avg_mass_cals, alg)
+
+			overlayed_mask_m_hd = create_mask(dcm_array, dilate_mask_M_HD_3D);
+			agat_m_hd, mass_m_hd = score(overlayed_mask_m_hd, pixel_size, avg_mass_cals, alg)
+
+			overlayed_mask_l_hd = create_mask(dcm_array, dilate_mask_L_HD_3D);			
+			agat_l_hd, mass_l_hd = score(overlayed_mask_l_hd, pixel_size, avg_mass_cals, alg);
+
+			#medium density
+
+			overlayed_mask_s_md = create_mask(dcm_array, dilate_mask_S_MD_3D);
+			agat_s_md, mass_s_md = score(overlayed_mask_s_md, pixel_size, avg_mass_cals, alg)
+			
+			overlayed_mask_m_md = create_mask(dcm_array, dilate_mask_M_MD_3D);
+			agat_m_md, mass_m_md = score(overlayed_mask_m_md, pixel_size, avg_mass_cals, alg)
+			
+			overlayed_mask_l_md = create_mask(dcm_array, dilate_mask_L_MD_3D);
+			agat_l_md, mass_l_md = score(overlayed_mask_l_md, pixel_size, avg_mass_cals, alg);
+
+			#low density
+
+			overlayed_mask_s_ld = create_mask(dcm_array, dilate_mask_S_LD_3D);
+			agat_s_ld, mass_s_ld = score(overlayed_mask_s_ld, pixel_size, avg_mass_cals, alg)
+		
+			overlayed_mask_m_ld = create_mask(dcm_array, dilate_mask_M_LD_3D);
+			agat_m_ld, mass_m_ld = score(overlayed_mask_m_ld, pixel_size, avg_mass_cals, alg)
+			
+			overlayed_mask_l_ld = create_mask(dcm_array, dilate_mask_L_LD_3D);
+			agat_l_ld, mass_l_ld = score(overlayed_mask_l_ld, pixel_size, avg_mass_cals, alg)
+
+			#Results
+
+			calcium_densities1 = [733, 733, 733, 411, 411, 411, 151, 151, 151];
+				
+			vol_small_gt, vol_medium_gt, vol_large_gt = π * (1/2)^2 * 3, π * (3/2)^2 * 3, π * (5/2)^2 * 3 # mm^3
+			vol2 = [vol_large_gt, vol_medium_gt, vol_small_gt] * 1e-3 
+			vols2 = vcat(vol2, vol2, vol2) # cm^3
+			gt_masses = calcium_densities1 .* vols2 .* 3
+			inserts = ["Low Density", "Medium Density", "High Density"]
+
+			##calculate agatston
+			calculated_agat_large = [agat_l_ld, agat_l_md, agat_l_hd]
+			calculated_agat_medium = [agat_m_ld, agat_m_md, agat_m_hd]
+			calculated_agat_small = [agat_s_ld, agat_s_md, agat_s_hd]
+
+			##Mass
+			volume_gt = [7.065, 63.585, 176.625]
+			calculated_mass_large = [mass_l_ld, mass_l_md, mass_l_hd]
+			calculated_mass_medium = [mass_m_ld, mass_m_md, mass_m_hd]
+			predicted_mass_hd = [mass_l_hd, mass_m_hd, mass_s_hd]
+			predicted_mass_md = [mass_l_md, mass_m_hd, mass_s_hd]
+			predicted_mass_ld = [mass_l_ld, mass_m_ld, mass_s_ld]
+			calculated_mass_small = [mass_s_ld, mass_s_md, mass_s_hd]
+
+			scan = energies[1];
+			df = DataFrame(;
+				scan = scan,
+				inserts=inserts,
+				calculated_agat_large=calculated_agat_large,
+				calculated_agat_medium=calculated_agat_medium,
+				calculated_agat_small=calculated_agat_small,
+				#ground_truth_mass_large=ground_truth_mass_large,
+				ground_truth_mass_hd = gt_masses[1:3],
+				predicted_mass_hd = predicted_mass_hd,
+				#ground_truth_mass_medium=ground_truth_mass_medium,
+				ground_truth_mass_md = gt_masses[4:6],
+				predicted_mass_md=predicted_mass_md,
+				#ground_truth_mass_small=ground_truth_mass_small,
+				ground_truth_mass_ld = gt_masses[7:9],
+				predicted_mass_ld = predicted_mass_ld,
+				avg_mass_cals = avg_mass_cals,
+			)
+			
+			
+			push!(dfs_a, df)
 		end
 	end
 end
 
-# ╔═╡ f416a14c-84bc-464a-8b1b-a722699d91c3
-dfs
+# ╔═╡ abd691ff-e2e9-45b6-b249-681ee1425818
+dfs_m
 
-# ╔═╡ 1172b423-4d84-442b-93af-4c73087f0a29
+# ╔═╡ c31a910e-2f2e-4aab-8a18-1a39308bcd96
+dfs_a
+
+# ╔═╡ 821865e5-0456-4a70-8339-ba39974a0b88
 begin
-    new_df = vcat(dfs[1:length(dfs)]...)
-    output_path = string(datadir("results"),"masses.csv")
+    new_df = vcat(dfs_m[1:length(dfs_m)]...)
+    output_path = string(datadir("results"),"/","masses_matdecomp.csv")
+	
+	save(output_path,new_df)
+
+	new_df = vcat(dfs_a[1:length(dfs_a)]...)
+    output_path = string(datadir("results"),"/","masses_agat.csv")
 	save(output_path,new_df)
 end
 
+# ╔═╡ d6021c28-9e79-422e-9be5-e133127b4017
+output_path
+
 # ╔═╡ Cell order:
-# ╠═05f80d21-203e-4934-8e4d-dfc843919918
-# ╠═a8646d6e-5c7b-11ed-2556-73f2b13f709d
-# ╠═87d68ed1-6d7b-4552-8680-4a8901964109
-# ╟─4676198a-2063-4d98-9b11-af5acfa32245
-# ╠═b32917fc-df2c-42eb-8e7a-cc2c564f2e22
-# ╟─0b83ca47-1734-4172-b3c8-0290e07bbece
-# ╟─860c6c90-b07f-472b-b364-9a28bc84434c
-# ╠═502abd7e-c123-463b-8581-9b886c87fa29
-# ╠═e0b52502-2075-47c0-a465-af93db8110de
-# ╠═2750bb98-c026-440c-9d89-ebf49dac1676
-# ╠═ba3b914d-758c-430d-8845-34f7b6c57f50
-# ╠═fad04012-8c80-45b5-9b44-7f682f4a28ff
-# ╠═97d59370-e42c-4b5d-9551-49281db1cc84
-# ╟─c9f111b6-1e66-459f-a1ff-66b44f3ae785
-# ╠═565b608a-f6a8-4579-9efd-37522dc9cde5
-# ╠═e093bf43-6e8a-4f89-8117-a578712ad822
-# ╠═24d92c10-9463-40a2-913c-94ed3728a169
-# ╠═f416a14c-84bc-464a-8b1b-a722699d91c3
-# ╠═1172b423-4d84-442b-93af-4c73087f0a29
+# ╠═6e6f2a53-f883-4b1c-917f-8e50219e7611
+# ╠═0b2b31a5-29df-4344-9ce8-a1313f9e01d0
+# ╠═3acf4253-394a-4ff5-be3b-32a49e0f947e
+# ╠═8fc48986-5362-4303-aedc-cce3cb46863b
+# ╠═e4a717b2-4b60-49df-b948-76ddec11f35f
+# ╠═c53b95fa-407c-4ba4-b031-5d0543261987
+# ╟─831886a2-f222-4cc3-a5c5-87c676fa4d01
+# ╠═ee139e88-4619-4636-8db8-b70917733643
+# ╟─3649478a-b065-4df6-9210-8a5e9fbb5010
+# ╠═9ecdd5e4-8e78-47af-a26e-2fc30a929ddd
+# ╠═abd691ff-e2e9-45b6-b249-681ee1425818
+# ╠═c31a910e-2f2e-4aab-8a18-1a39308bcd96
+# ╠═d6021c28-9e79-422e-9be5-e133127b4017
+# ╠═821865e5-0456-4a70-8339-ba39974a0b88

@@ -14,12 +14,16 @@ macro bind(def, element)
     end
 end
 
+# ╔═╡ 1c0c45d0-7ab4-4941-a461-40bbbfec9242
+# ╠═╡ show_logs = false
+begin
+	using DrWatson
+	@quickactivate "cac-dual-energy"
+end
+
 # ╔═╡ db978680-24b3-11ed-338e-d18072c03678
 # ╠═╡ show_logs = false
 begin
-	using Pkg
-	Pkg.activate("."); Pkg.instantiate()
-
     using PlutoUI, CairoMakie, Statistics, ImageMorphology, CSV, DataFrames, DICOM, DICOMUtils, CalciumScoring
 	using StatsBase: quantile!
 end
@@ -108,22 +112,19 @@ begin
 	elseif (SIZE == sizes[3] || SIZE == sizes[6])
 		_SIZE = "large"
 	end
-		
-	root_new = string(
-		dirname(pwd()),
-        "/julia_arrays/",
-        _SIZE,
-        "/",
-    )
-    mask_L_HD = Array(CSV.read(string(root_new, "mask_L_HD.csv"), DataFrame; header=false))
-	mask_M_HD = Array(CSV.read(string(root_new, "mask_M_HD.csv"), DataFrame; header=false))
-    mask_S_HD = Array(CSV.read(string(root_new, "mask_S_HD.csv"), DataFrame; header=false))
-	mask_L_MD = Array(CSV.read(string(root_new, "mask_L_MD.csv"), DataFrame; header=false))
-	mask_M_MD = Array(CSV.read(string(root_new, "mask_M_MD.csv"), DataFrame; header=false))
-	mask_S_MD = Array(CSV.read(string(root_new, "mask_S_MD.csv"), DataFrame; header=false))
-    mask_L_LD = Array(CSV.read(string(root_new, "mask_L_LD.csv"), DataFrame; header=false))
-    mask_M_LD = Array(CSV.read(string(root_new, "mask_M_LD.csv"), DataFrame; header=false))
-    mask_S_LD = Array(CSV.read(string(root_new, "mask_S_LD.csv"), DataFrame; header=false))
+
+	root_new = datadir("julia_arrays",_SIZE)
+
+
+    mask_L_HD = Array(CSV.read(string(root_new,"/", "mask_L_HD.csv"), DataFrame; header=false))
+	mask_M_HD = Array(CSV.read(string(root_new,"/", "mask_M_HD.csv"), DataFrame; header=false))
+    mask_S_HD = Array(CSV.read(string(root_new,"/", "mask_S_HD.csv"), DataFrame; header=false))
+	mask_L_MD = Array(CSV.read(string(root_new,"/", "mask_L_MD.csv"), DataFrame; header=false))
+	mask_M_MD = Array(CSV.read(string(root_new,"/", "mask_M_MD.csv"), DataFrame; header=false))
+	mask_S_MD = Array(CSV.read(string(root_new,"/", "mask_S_MD.csv"), DataFrame; header=false))
+    mask_L_LD = Array(CSV.read(string(root_new,"/", "mask_L_LD.csv"), DataFrame; header=false))
+    mask_M_LD = Array(CSV.read(string(root_new,"/", "mask_M_LD.csv"), DataFrame; header=false))
+    mask_S_LD = Array(CSV.read(string(root_new,"/", "mask_S_LD.csv"), DataFrame; header=false))
 end;
 
 # ╔═╡ 4526ec32-2491-41be-91c4-03f545f9733c
@@ -136,10 +137,10 @@ md"""
 
 # ╔═╡ c268d8f1-706f-43d8-9d3d-dc4072666451
 begin
-	param_base_pth = string(dirname(pwd()), "/calibration_params/")
-	small_pth = string(param_base_pth,"Small.csv")
-	med_pth = string(param_base_pth,"Medium.csv")
-	large_pth = string(param_base_pth,"Large.csv")
+	param_base_pth = datadir("calibration_params")
+	small_pth = string(param_base_pth,"/","Small.csv")
+	med_pth = string(param_base_pth,"/","Medium.csv")
+	large_pth = string(param_base_pth,"/","Large.csv")
 
 	small_param = DataFrame(CSV.File(small_pth))
 	med_param = DataFrame(CSV.File(med_pth))
@@ -156,7 +157,8 @@ md"""
 
 # ╔═╡ fb440caa-f753-4b86-b6f2-fed47e31e94d
 begin
-	pth = joinpath(dirname(pwd()), "dcms_measurement_new", size0, density0, energy0)
+	pth = datadir("dcms_measurement_new", size0, density0, energy0)
+
 	dcm = dcmdir_parse(pth)
 	dcm_array = load_dcm_array(dcm)
 end;
@@ -255,7 +257,7 @@ md"""
 
 # ╔═╡ 6f95f46a-bed8-4845-b7b1-d9340a7eea82
 begin
-	pth2 = joinpath(dirname(pwd()), "dcms_measurement_new", size0, density0, energy1)
+	pth2 = datadir("dcms_measurement_new", size0, density0, energy1)
 	dcm2 = dcmdir_parse(pth2)
 	dcm_array2 = load_dcm_array(dcm2)
 
@@ -377,6 +379,7 @@ df_results = DataFrame(
 )
 
 # ╔═╡ Cell order:
+# ╠═1c0c45d0-7ab4-4941-a461-40bbbfec9242
 # ╠═db978680-24b3-11ed-338e-d18072c03678
 # ╠═7f5a24e6-e9b0-4a72-a9fa-98ab01a20125
 # ╟─562b6c00-5470-4437-9e50-a75bf1ddd030
