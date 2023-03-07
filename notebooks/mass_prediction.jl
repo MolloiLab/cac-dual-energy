@@ -89,9 +89,39 @@ md"""
 # Load Segmentation Masks
 """
 
+# ╔═╡ 4807a059-3711-4839-96c6-a3f1ce8b3c7c
+md"""
+# Load Calibration Parameters
+"""
+
+# ╔═╡ c268d8f1-706f-43d8-9d3d-dc4072666451
+begin
+	param_base_pth = datadir("calibration_params")
+	small_pth = string(param_base_pth,"/","Small.csv")
+	med_pth = string(param_base_pth,"/","Medium.csv")
+	large_pth = string(param_base_pth,"/","Large.csv")
+
+	small_param = DataFrame(CSV.File(small_pth))
+	med_param = DataFrame(CSV.File(med_pth))
+	large_param = DataFrame(CSV.File(large_pth))
+end;
+
+# ╔═╡ a7be826f-97c1-4322-a1ad-644576d9a07a
+large_param
+
+# ╔═╡ 1d878c11-fca2-49e4-bd12-e645cc8bcb70
+md"""
+# Calculate Intensities
+"""
+
+# ╔═╡ 0a4fe231-8806-4a1b-a3e1-db79e1bb8dc5
+md"""
+## Low Energy
+"""
+
 # ╔═╡ 4ec398d1-cc7e-4124-a351-fc1058d11cf6
 begin
-	size0 = sizes_folders[1]
+	size0 = sizes_folders[3]
 	density0 = densities[1]
 	energy0 = string(energies_num[1])
 	energy1 = string(energies_num[2])
@@ -129,31 +159,6 @@ end;
 
 # ╔═╡ 4526ec32-2491-41be-91c4-03f545f9733c
 masks = mask_L_HD+mask_L_MD+mask_L_LD+mask_M_HD+mask_M_MD+mask_M_LD+mask_S_HD+mask_S_MD+mask_S_LD;
-
-# ╔═╡ 4807a059-3711-4839-96c6-a3f1ce8b3c7c
-md"""
-# Load Calibration Parameters
-"""
-
-# ╔═╡ c268d8f1-706f-43d8-9d3d-dc4072666451
-begin
-	param_base_pth = datadir("calibration_params")
-	small_pth = string(param_base_pth,"/","Small.csv")
-	med_pth = string(param_base_pth,"/","Medium.csv")
-	large_pth = string(param_base_pth,"/","Large.csv")
-
-	small_param = DataFrame(CSV.File(small_pth))
-	med_param = DataFrame(CSV.File(med_pth))
-	large_param = DataFrame(CSV.File(large_pth))
-end;
-
-# ╔═╡ a7be826f-97c1-4322-a1ad-644576d9a07a
-large_param
-
-# ╔═╡ 1d878c11-fca2-49e4-bd12-e645cc8bcb70
-md"""
-# Calculate Intensities
-"""
 
 # ╔═╡ fb440caa-f753-4b86-b6f2-fed47e31e94d
 begin
@@ -220,11 +225,6 @@ begin
     end
 end;
 
-# ╔═╡ 0a4fe231-8806-4a1b-a3e1-db79e1bb8dc5
-md"""
-## Low Energy
-"""
-
 # ╔═╡ ff366ede-a201-48da-9f59-638c9907ed72
 begin
 	pixel_size = DICOMUtils.get_pixel_size(dcm[1].meta)
@@ -238,8 +238,28 @@ begin
     end
 end;
 
+# ╔═╡ 6e251fe4-1cb0-435d-92e1-d39767b0a252
+size0
+
+# ╔═╡ a6545e74-b85d-4ab5-bf7e-f0ebd07bd57b
+begin
+	small_center = [175, 320]
+	medium_center = [230, 370]
+	large_center = [285, 420]
+end
+
 # ╔═╡ 25f36ebb-0b26-4f27-b42a-3ee08afb9496
 @bind v1 overlay_mask_bind(masks_3D)
+
+# ╔═╡ cbde3751-b335-4aeb-98ce-b4a30ff2f2f2
+let
+	f = Figure()
+	ax = Axis(f[1, 1])
+	heatmap!(dcm_array[:, :, 2], colormap=:grays)
+	scatter!(285:285, 420:420, markersize=10)
+
+	f
+end
 
 # ╔═╡ bef52d62-75f0-450e-83df-9f635dad2f5b
 overlay_mask_plot(dcm_array, dilate(dilate(dilate_mask_L_HD_3D)), v1, "masks overlayed")
@@ -390,7 +410,6 @@ df_results = DataFrame(
 # ╠═8ae2a44d-8cbb-43a3-b586-4a9eb037713d
 # ╠═80a181a0-390b-493b-b15d-03fce1ac5dbd
 # ╟─818de283-2626-4afd-9465-ee065dfaff8d
-# ╠═4ec398d1-cc7e-4124-a351-fc1058d11cf6
 # ╠═9ca73379-3456-404c-8893-b20be9ea6acf
 # ╠═013acd6e-0465-46c9-83b1-97613ebdee53
 # ╠═4526ec32-2491-41be-91c4-03f545f9733c
@@ -403,7 +422,11 @@ df_results = DataFrame(
 # ╟─0a4fe231-8806-4a1b-a3e1-db79e1bb8dc5
 # ╠═ff366ede-a201-48da-9f59-638c9907ed72
 # ╠═af62f7d2-8b32-40de-a789-99b112be3852
+# ╠═4ec398d1-cc7e-4124-a351-fc1058d11cf6
+# ╠═6e251fe4-1cb0-435d-92e1-d39767b0a252
+# ╠═a6545e74-b85d-4ab5-bf7e-f0ebd07bd57b
 # ╟─25f36ebb-0b26-4f27-b42a-3ee08afb9496
+# ╠═cbde3751-b335-4aeb-98ce-b4a30ff2f2f2
 # ╠═bef52d62-75f0-450e-83df-9f635dad2f5b
 # ╠═1a254747-0f14-4731-b014-2d59ff6a759b
 # ╟─10273dd0-a77f-4c43-be5a-a5696aa5688b

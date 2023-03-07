@@ -52,6 +52,7 @@ begin
 		for density in DENSITIES
 			@info _size, density
 
+			#---------------- Reusable Pieces ----------------#
 			#Load masks 
 			if (_size == SIZES[1] || _size == SIZES[4])
 				_SIZE = "small"
@@ -81,7 +82,7 @@ begin
 			dcm = dcmdir_parse(pth)
 			dcm_array = load_dcm_array(dcm)
 			
-			## Material Decomp
+			
 			dilate_mask_S_HD = dilate(dilate(mask_S_HD))
 			dilate_mask_S_HD_3D = Array{Bool}(undef, size(dcm_array))
 			for z in axes(dcm_array, 3)
@@ -141,14 +142,51 @@ begin
 			for z in axes(dcm_array, 3)
 				masks_3D[:, :, z] = masks
 			end
-			means1 = [mean(dcm_array[dilate_mask_L_HD_3D]), mean(dcm_array[dilate_mask_M_HD_3D]), mean(dcm_array[dilate_mask_S_HD_3D]), mean(dcm_array[dilate_mask_L_MD_3D]), mean(dcm_array[dilate_mask_M_MD_3D]), mean(dcm_array[dilate_mask_S_MD_3D]), mean(dcm_array[dilate_mask_L_LD_3D]), mean(dcm_array[dilate_mask_M_LD_3D]), mean(dcm_array[dilate_mask_S_LD_3D])]
+
+			## Background
+			local center_insert
+			if _SIZE == "small"
+				center_insert = [175, 320]
+				# center_insert = [320, 175]
+			elseif _SIZE == "medium"
+				center_insert = [230, 370]
+				# center_insert = [370, 230]
+			elseif _SIZE == "large"
+				center_insert = [285, 420]
+				# center_insert = [420, 285]
+			end
+			background_mask = zeros(size(dcm_array)...)
+			background_mask[
+				(center_insert[1]-5):(center_insert[1]+5),
+				(center_insert[2]-5):(center_insert[2]+5),
+				2,
+			] .= 1
+
+			dilated_mask_L_bkg = dilate_mask_large_bkg(Bool.(background_mask))
+			ring_mask_L_bkg = ring_mask_large(dilated_mask_L_bkg)
+
+			# dilated_mask_M_bkg = dilate_mask_medium_bkg(Bool.(background_mask))
+			# ring_mask_M_bkg = ring_mask_medium(dilated_mask_M_bkg)
+
+			# dilated_mask_S_bkg = dilate_mask_small_bkg(Bool.(background_mask))
+			# ring_mask_S_bkg = ring_mask_small(dilated_mask_S_bkg)
+
+			#---------------- Material Decomposition ----------------#
+			means1 = [
+				mean(dcm_array[dilate_mask_L_HD_3D]),
+				mean(dcm_array[dilate_mask_M_HD_3D]), mean(dcm_array[dilate_mask_S_HD_3D]), mean(dcm_array[dilate_mask_L_MD_3D]), mean(dcm_array[dilate_mask_M_MD_3D]), mean(dcm_array[dilate_mask_S_MD_3D]), mean(dcm_array[dilate_mask_L_LD_3D]), mean(dcm_array[dilate_mask_M_LD_3D]), mean(dcm_array[dilate_mask_S_LD_3D])
+			]
+			means1_bkg = mean(dcm_array[dilated_mask_L_bkg])
 			
 			## energy2
 			pth2 = datadir("dcms_measurement_new", _size, density, string(ENERGIES[2]))
 			dcm2 = dcmdir_parse(pth2)
 			dcm_array2 = load_dcm_array(dcm2)
 			
-			means2 = [mean(dcm_array2[dilate_mask_L_HD_3D]), mean(dcm_array2[dilate_mask_M_HD_3D]), mean(dcm_array2[dilate_mask_S_HD_3D]), mean(dcm_array2[dilate_mask_L_MD_3D]), mean(dcm_array2[dilate_mask_M_MD_3D]), mean(dcm_array2[dilate_mask_S_MD_3D]), mean(dcm_array2[dilate_mask_L_LD_3D]), mean(dcm_array2[dilate_mask_M_LD_3D]), mean(dcm_array2[dilate_mask_S_LD_3D])]
+			means2 = [
+				mean(dcm_array2[dilate_mask_L_HD_3D]), mean(dcm_array2[dilate_mask_M_HD_3D]), mean(dcm_array2[dilate_mask_S_HD_3D]), mean(dcm_array2[dilate_mask_L_MD_3D]), mean(dcm_array2[dilate_mask_M_MD_3D]), mean(dcm_array2[dilate_mask_S_MD_3D]), mean(dcm_array2[dilate_mask_L_LD_3D]), mean(dcm_array2[dilate_mask_M_LD_3D]), mean(dcm_array2[dilate_mask_S_LD_3D])
+			]
+			means2_bkg = mean(dcm_array2[dilated_mask_L_bkg])
 
 			## Calculate Predicted Densities
 			calculated_intensities = hcat(means1, means2)
@@ -156,6 +194,9 @@ begin
 			for i in 1:9
 				predicted_densities[i] = predict_concentration(means1[i], means2[i], Array(small_param))
 			end
+
+			calculated_intensities_bkg = hcat(means1_bkg, means2_bkg)
+			predicted_densities_bkg = predict_concentration(means1[1], means2[1], Array(small_param))
 
 			## Choose Calcium Density
 			if (density == "Density1") && (_size == "Large" || _size == "Medium" || _size == "Small")
@@ -181,6 +222,9 @@ begin
 			vols = vcat(vol_slice1, vol_slice1, vol_slice1)# cm^3
 			predicted_masses = predicted_densities .* vols
 
+			vol_bkg = count(dilated_mask_L_bkg) * voxel_size
+			predicted_masses_bkg = predicted_densities_bkg * vol_bkg
+
 			
 			vol_small_gt, vol_medium_gt, vol_large_gt = π * (1/2)^2 * 3, π * (3/2)^2 * 3, π * (5/2)^2 * 3 # mm^3
 		
@@ -198,12 +242,12 @@ begin
 				predicted_mass_md = predicted_masses[4:6],
 				ground_truth_mass_ld = gt_masses[7:9],
 				predicted_mass_ld = predicted_masses[7:9],
+				bkg_mass = predicted_masses_bkg
 			)
 
 			push!(dfs_m, df_results)
 			
-
-			# Agatson Scoring
+			#---------------- Agatston ----------------#
 			header = dcm[1].meta
 			pixel_size = DICOMUtils.get_pixel_size(header)				
 		

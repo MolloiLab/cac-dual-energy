@@ -52,6 +52,9 @@ md"""
 # ╔═╡ d9071ce3-0109-4979-9474-a9256acc1b58
 df_m = CSV.read(datadir("results", "material_decomposition.csv"), DataFrame);
 
+# ╔═╡ bd534b5c-36d3-4619-afeb-031bec8ce546
+df_m
+
 # ╔═╡ 92efa7e8-ad6e-4e84-a4ab-4773f8fa2be7
 let
 	df = df_m
@@ -428,6 +431,7 @@ total_zero_i_pos, total_zero_a_pos
 # ╠═58f66f99-006d-4a14-a2a4-3342e764c01d
 # ╟─b4bc009b-c9dc-40f4-9444-f12cae95289c
 # ╠═d9071ce3-0109-4979-9474-a9256acc1b58
+# ╠═bd534b5c-36d3-4619-afeb-031bec8ce546
 # ╠═92efa7e8-ad6e-4e84-a4ab-4773f8fa2be7
 # ╠═d837159a-b6f2-40b8-822c-ad6349ea081a
 # ╠═004faee6-9239-450d-995a-98037baf6536
