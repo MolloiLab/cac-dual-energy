@@ -15,28 +15,10 @@ macro bind(def, element)
 end
 
 # ╔═╡ d7ea5b44-b664-40bf-a551-13c1b3746747
+# ╠═╡ show_logs = false
 begin
 	using DrWatson
 	@quickactivate "cac-dual-energy"
-end
-
-# ╔═╡ 1d21e822-3626-4c53-b580-0b26dc916caf
-begin
-	### A Pluto.jl notebook ###
-	# v0.19.14
-	
-	using Markdown
-	using InteractiveUtils
-	
-	# This Pluto notebook uses @bind for interactivity. When running this notebook outside of Pluto, the following 'mock version' of @bind gives bound variables a default value (instead of an error).
-	macro bind(def, element)
-	    quote
-	        local iv = try Base.loaded_modules[Base.PkgId(Base.UUID("6e696c72-6542-2067-7265-42206c756150"), "AbstractPlutoDingetjes")].Bonds.initial_value catch; b -> missing; end
-	        local el = $(esc(element))
-	        global $(esc(def)) = Core.applicable(Base.get, el) ? Base.get(el) : iv(el)
-	        el
-	    end
-	end
 end
 
 # ╔═╡ d4a49edf-eb3c-48b5-b4bb-b7c650362c09
@@ -47,10 +29,7 @@ begin
 end
 
 # ╔═╡ 5fc80751-2964-409c-bbef-493842890831
-include(srcdir("helper_functions.jl"));
-
-# ╔═╡ 5c5c296e-c73a-4541-bb88-11845f00264d
-include(srcdir("masks.jl"));
+include(srcdir("helper_functions.jl")); include(srcdir("masks.jl"));
 
 # ╔═╡ d296911e-0d03-44c8-82c4-d898a1353f75
 TableOfContents()
@@ -70,9 +49,7 @@ begin
     DENSITY = DENSITIES[1]
 	ENERGY = ENERGIES[2]
     TYPE = "agatston"
-    root_path = string(datadir("dcms_measurement_new", SIZE,string(DENSITY),string(ENERGY)),"/")
-
-
+    root_path = datadir("dcms_measurement_new", SIZE, string(DENSITY), string(ENERGY))
 end
 
 # ╔═╡ 2f8da4af-d096-4c2f-9986-dc069bb8279b
@@ -155,7 +132,7 @@ begin
 end;
 
 # ╔═╡ 6f88c46c-b77f-4dcb-aa65-42b2183b3ab8
-mean(arr[erode(erode(erode(erode(erode(mask_L_HD_3D)))))])
+mean_hu_200 = mean(arr[erode(erode(erode(erode(erode(mask_L_HD_3D)))))])
 
 # ╔═╡ fba2f6b5-c6c4-459e-8213-ba8b46a1d74e
 md"""
@@ -308,7 +285,16 @@ avg_mass_cals = mean([
 pixel_size
 
 # ╔═╡ 390da412-58c0-4b47-bff9-1ea6ab6f5b67
-agat_l_hd, mass_l_hd = score(overlayed_mask_l_hd, pixel_size, 0.0006, alg)
+agat_l_hd, mass_l_hd = score(overlayed_mask_l_hd, pixel_size, 0.0006, alg; kV=80)
+
+# ╔═╡ de4f5ab5-7a01-4979-b8bb-14fed542a3c2
+volume_score_hd = agat_l_hd * sum(dilated_mask_L_HD) * (pixel_size[1] * pixel_size[2] * pixel_size[3])
+
+# ╔═╡ ca54de09-53da-4da8-918d-8fa53c037cb6
+rel_mass_score_hd = volume_score_hd * mean(arr[dilated_mask_L_HD])
+
+# ╔═╡ 0c214ec1-db86-4406-886e-d5b55f6c6a5a
+c_agat = 200/mean_hu_200
 
 # ╔═╡ 2c828133-352e-49ea-99f9-a0ef59365f5b
 md"""
@@ -674,12 +660,10 @@ df = DataFrame(;
 
 # ╔═╡ Cell order:
 # ╠═d7ea5b44-b664-40bf-a551-13c1b3746747
-# ╠═5fc80751-2964-409c-bbef-493842890831
-# ╠═5c5c296e-c73a-4541-bb88-11845f00264d
-# ╠═1d21e822-3626-4c53-b580-0b26dc916caf
 # ╠═d4a49edf-eb3c-48b5-b4bb-b7c650362c09
+# ╠═5fc80751-2964-409c-bbef-493842890831
 # ╠═d296911e-0d03-44c8-82c4-d898a1353f75
-# ╠═395964f9-99af-4447-bead-e7a12b7b3e4b
+# ╟─395964f9-99af-4447-bead-e7a12b7b3e4b
 # ╠═97ae8b59-bd68-4054-a470-12a76b359f77
 # ╟─2f8da4af-d096-4c2f-9986-dc069bb8279b
 # ╠═50dd2530-443c-47af-af1a-7a05ffb2f113
@@ -705,6 +689,9 @@ df = DataFrame(;
 # ╟─331df9c2-88a4-479b-ab69-88c907c0fd1c
 # ╠═44c48ad8-c4d8-4bdf-9dcc-f3a935a78d01
 # ╠═390da412-58c0-4b47-bff9-1ea6ab6f5b67
+# ╠═de4f5ab5-7a01-4979-b8bb-14fed542a3c2
+# ╠═ca54de09-53da-4da8-918d-8fa53c037cb6
+# ╠═0c214ec1-db86-4406-886e-d5b55f6c6a5a
 # ╠═a1c562c2-b8ca-474f-880c-fffcc29c7028
 # ╟─2c828133-352e-49ea-99f9-a0ef59365f5b
 # ╠═3ef7fea8-b7e0-431f-adc8-7ad545381333

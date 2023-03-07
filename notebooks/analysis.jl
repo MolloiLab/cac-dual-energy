@@ -5,13 +5,11 @@ using Markdown
 using InteractiveUtils
 
 # ╔═╡ 321db384-5cbe-49b5-bf1e-80cc1a603699
+# ╠═╡ show_logs = false
 begin
 	using DrWatson
 	@quickactivate "cac-dual-energy"
 end
-
-# ╔═╡ a35241f6-289d-433c-9e1e-432d26fcc34b
-using Markdown; using InteractiveUtils
 
 # ╔═╡ 68b40210-7a3c-403e-a206-bcea384a7d27
 begin
@@ -52,7 +50,7 @@ md"""
 """
 
 # ╔═╡ d9071ce3-0109-4979-9474-a9256acc1b58
-df_m = CSV.read(string(datadir("results"),"/","masses_matdecomp.csv"), DataFrame);
+df_m = CSV.read(datadir("results", "material_decomposition.csv"), DataFrame);
 
 # ╔═╡ 92efa7e8-ad6e-4e84-a4ab-4773f8fa2be7
 let
@@ -84,13 +82,16 @@ end
 co1 = coef(model_i1)
 
 # ╔═╡ 8212d99a-a5c8-4e44-a2e4-8a6e598b9367
-df_a = CSV.read(string(datadir("results"),"/","masses_agat.csv"), DataFrame);
+df_a = CSV.read(datadir("results", "agatston.csv"), DataFrame);
+
+# ╔═╡ 96e42051-0eeb-4fbc-8032-127b0d312e32
+df_a
 
 # ╔═╡ cc32f947-3c21-490a-9fd6-625349e68843
 let
 	df = df_a
 	gt_array = vec(hcat(df[!, :ground_truth_mass_hd], df[!, :ground_truth_mass_md], df[!, :ground_truth_mass_ld]))
-	calc_array = vec(hcat(df[!, :calculated_agat_large], df[!, :calculated_agat_medium], df[!, :calculated_agat_small]))
+	calc_array = vec(hcat(df[!, :predicted_mass_hd], df[!, :predicted_mass_md], df[!, :predicted_mass_ld]))
 	data = DataFrame(
 		X = gt_array,
 		Y= calc_array
@@ -126,16 +127,16 @@ function accuracy()
 		yticks = [0, 25, 50, 75, 100, 125],
 		xlabel = "Known Mass (mg)",
 		ylabel = "Calculated Mass (mg)",
-		title = "Integrated Calcium Mass",
+		title = "Material Decomposition",
 	)
 	
 	df = df_m
 	sc1=scatter!(df[!, :ground_truth_mass_hd], df[!, :predicted_mass_hd])
-	errorbars!(df[!, :ground_truth_mass_hd], df[!, :predicted_mass_hd], rms(df[!, :ground_truth_mass_hd], df[!, :predicted_mass_hd]))
+	# errorbars!(df[!, :ground_truth_mass_hd], df[!, :predicted_mass_hd], rms(df[!, :ground_truth_mass_hd], df[!, :predicted_mass_hd]))
 	sc2=scatter!(df[!, :ground_truth_mass_md], df[!, :predicted_mass_md])
-	errorbars!(df[!, :ground_truth_mass_md], df[!, :predicted_mass_md], rms(df[!, :ground_truth_mass_md], df[!, :predicted_mass_md]))
+	# errorbars!(df[!, :ground_truth_mass_md], df[!, :predicted_mass_md], rms(df[!, :ground_truth_mass_md], df[!, :predicted_mass_md]))
 	sc3=scatter!(df[!, :ground_truth_mass_ld], df[!, :predicted_mass_ld], color=:red)
-	errorbars!(df[!, :ground_truth_mass_ld], df[!, :predicted_mass_ld], rms(df[!, :ground_truth_mass_ld], df[!, :predicted_mass_ld]))
+	# errorbars!(df[!, :ground_truth_mass_ld], df[!, :predicted_mass_ld], rms(df[!, :ground_truth_mass_ld], df[!, :predicted_mass_ld]))
 	ln1=lines!([-1000, 1000], [-1000, 1000])
 	ln2=lines!(collect(1:1000), pred_i1, linestyle=:dashdot)
 	create_textbox(f[1, 1], co1, r2_1, rms_values1)
@@ -154,12 +155,12 @@ function accuracy()
 
 	##-- B --##
 	df = df_a
-	scatter!(df[!, :ground_truth_mass_hd], df[!, :calculated_agat_large])
-	errorbars!(df[!, :ground_truth_mass_hd], df[!, :calculated_agat_large], rms(df[!, :ground_truth_mass_hd], df[!, :calculated_agat_large]))
-	scatter!(df[!, :ground_truth_mass_md], df[!, :calculated_agat_medium])
-	errorbars!(df[!, :ground_truth_mass_md], df[!, :calculated_agat_medium], rms(df[!, :ground_truth_mass_md], df[!, :calculated_agat_medium]))
-	scatter!(df[!, :ground_truth_mass_ld], df[!, :calculated_agat_small], color=:red)
-	errorbars!(df[!, :ground_truth_mass_ld], df[!, :calculated_agat_small], rms(df[!, :ground_truth_mass_ld], df[!, :calculated_agat_small]))
+	scatter!(df[!, :ground_truth_mass_hd], df[!, :predicted_mass_hd])
+	# errorbars!(df[!, :ground_truth_mass_hd], df[!, :calculated_agat_large], rms(df[!, :ground_truth_mass_hd], df[!, :calculated_agat_large]))
+	scatter!(df[!, :ground_truth_mass_md], df[!, :predicted_mass_md])
+	# errorbars!(df[!, :ground_truth_mass_md], df[!, :calculated_agat_medium], rms(df[!, :ground_truth_mass_md], df[!, :calculated_agat_medium]))
+	scatter!(df[!, :ground_truth_mass_ld], df[!, :predicted_mass_ld], color=:red)
+	# errorbars!(df[!, :ground_truth_mass_ld], df[!, :calculated_agat_small], rms(df[!, :ground_truth_mass_ld], df[!, :calculated_agat_small]))
 	lines!([-1000, 1000], [-1000, 1000],)
 	lines!(collect(1:1000), pred_a, linestyle=:dashdot)
 	create_textbox(f[2, 1], co3, r2a, rms_valuesa)
@@ -241,8 +242,17 @@ end
 
 # ╔═╡ b8da1153-ae0a-4baa-9576-dffd76d2267b
 md"""
-#### Integrated
+#### Material Decomposition
 """
+
+# ╔═╡ efb37783-dcee-4207-ac39-7f12e404ac24
+array_m = hcat(df_m[!, :predicted_mass_hd], df_m[!, :predicted_mass_md], df_m[!, :predicted_mass_ld]);
+
+# ╔═╡ 41a60f4d-700c-4b14-8070-fca43952e0c6
+num_zero_m = length(findall(x -> x <= 0, array_m))
+
+# ╔═╡ f719f3f5-8d14-4ddb-a4f7-01cef35f57c5
+num_zero_m / total_cac * 100
 
 # ╔═╡ fdd43925-fc6a-4e26-8aea-8beb6c2c21fe
 begin
@@ -282,7 +292,7 @@ total_zero_a_pos = length(findall(x -> x > 0, array_a_pos))
 
 # ╔═╡ 78a2bdd7-54c6-46a0-a9b4-a28f3c97448a
 md"""
-#### Integrated
+#### Material Decomposition
 """
 
 # ╔═╡ 7be46fdc-0554-48b2-aa8e-55770c68f16b
@@ -410,7 +420,6 @@ total_zero_i_pos, total_zero_a_pos
 # ╠═233f365d-6ed2-4a4d-9533-ffde89972401
 
 # ╔═╡ Cell order:
-# ╠═a35241f6-289d-433c-9e1e-432d26fcc34b
 # ╠═321db384-5cbe-49b5-bf1e-80cc1a603699
 # ╠═68b40210-7a3c-403e-a206-bcea384a7d27
 # ╠═debe4f43-1698-461d-95c6-17f6052eee36
@@ -423,16 +432,17 @@ total_zero_i_pos, total_zero_a_pos
 # ╠═d837159a-b6f2-40b8-822c-ad6349ea081a
 # ╠═004faee6-9239-450d-995a-98037baf6536
 # ╠═8212d99a-a5c8-4e44-a2e4-8a6e598b9367
+# ╠═96e42051-0eeb-4fbc-8032-127b0d312e32
 # ╠═cc32f947-3c21-490a-9fd6-625349e68843
 # ╠═8f93a665-5293-4c4e-9a7e-72c4c9094ba8
 # ╠═f2210674-17da-40b1-be01-e0dfc5c35d1b
-# ╠═fea99e7b-3e03-4b68-a8dd-7532a275fe27
-# ╠═190d1636-41ab-4e98-ae6c-5d872a742c0f
-# ╠═7ffa22cc-8214-4d39-9ff0-20b0b63f06cb
-# ╠═db529cfe-fd35-4a35-b9fd-8367bd7fb6fe
+# ╟─fea99e7b-3e03-4b68-a8dd-7532a275fe27
+# ╟─190d1636-41ab-4e98-ae6c-5d872a742c0f
+# ╟─7ffa22cc-8214-4d39-9ff0-20b0b63f06cb
+# ╟─db529cfe-fd35-4a35-b9fd-8367bd7fb6fe
 # ╠═5eb31f2b-bfaa-41d0-9375-9a076ba789d1
-# ╠═1f39b6b5-b839-4dff-bbf0-10b3aa7b84ef
-# ╠═2cff3bc9-1f37-4e56-a02f-b61c4cceb6f1
+# ╟─1f39b6b5-b839-4dff-bbf0-10b3aa7b84ef
+# ╟─2cff3bc9-1f37-4e56-a02f-b61c4cceb6f1
 # ╠═78e7c2b7-c7e7-4fd5-8a2a-e8d67e39d829
 # ╠═d2b062b3-30dc-454a-b2fa-56c41312cc38
 # ╠═9b52009a-4ef7-4f7f-aadb-89320a32f906
@@ -440,18 +450,21 @@ total_zero_i_pos, total_zero_a_pos
 # ╠═17dad848-6491-45e4-8eec-3ed3e08c5318
 # ╠═12edad23-47d8-4c30-b595-0e48380868dd
 # ╠═fb9da5d1-a8cc-4485-9cf6-ab9c98c11816
-# ╠═b8da1153-ae0a-4baa-9576-dffd76d2267b
+# ╟─b8da1153-ae0a-4baa-9576-dffd76d2267b
+# ╠═efb37783-dcee-4207-ac39-7f12e404ac24
+# ╠═41a60f4d-700c-4b14-8070-fca43952e0c6
+# ╠═f719f3f5-8d14-4ddb-a4f7-01cef35f57c5
 # ╠═fdd43925-fc6a-4e26-8aea-8beb6c2c21fe
 # ╠═0691ad9a-10c4-489b-a6bf-03dd46ef7f09
 # ╠═364ade03-b649-43be-9580-85f0e2fae7bd
-# ╠═881488ad-3eaf-46ed-8a86-7207df316ca4
-# ╠═5302a029-1bd0-4582-99bb-d60832cc696c
+# ╟─881488ad-3eaf-46ed-8a86-7207df316ca4
+# ╟─5302a029-1bd0-4582-99bb-d60832cc696c
 # ╠═f127ec74-b7d3-4c83-bacd-40fcda4e14c7
 # ╠═934bb2d3-9c17-4549-9dfb-e16ebb5963bc
 # ╠═bb1c2f6f-0d5a-49c8-9133-2aa65485a405
-# ╠═78a2bdd7-54c6-46a0-a9b4-a28f3c97448a
+# ╟─78a2bdd7-54c6-46a0-a9b4-a28f3c97448a
 # ╠═7be46fdc-0554-48b2-aa8e-55770c68f16b
 # ╠═0e428d01-39de-4274-a83d-1e2369ae35f5
-# ╠═3560a592-71fa-4817-82b1-3946842d6f34
+# ╟─3560a592-71fa-4817-82b1-3946842d6f34
 # ╠═d8a3e7f0-65d8-47d7-885a-f3fa6ba63739
 # ╠═07bab099-72e6-4315-aeac-ee7acc73f3dc

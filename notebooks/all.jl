@@ -5,6 +5,7 @@ using Markdown
 using InteractiveUtils
 
 # ╔═╡ 6c99eb9f-99ee-40d9-b43b-e220d0c991ab
+# ╠═╡ show_logs = false
 begin
 	using DrWatson
 	@quickactivate "cac-dual-energy"
@@ -13,57 +14,40 @@ end
 # ╔═╡ efdd5526-1c01-438f-a4d2-47adb669289c
 begin
     using PlutoUI, Statistics, CSV, DataFrames, GLM, CairoMakie, HypothesisTests, Colors, MLJBase, DICOM, DICOMUtils, CalciumScoring, ImageMorphology, ImageFiltering, Noise
-    using StatsBase: quantile!,rmsd
+    using StatsBase: quantile!, rmsd
 end
 
 # ╔═╡ 6b14198c-41bd-4f8f-8e2c-f9d31082f17c
-begin
-	
-	include(srcdir("helper_functions.jl")); 
-	include(srcdir("masks.jl"));
-end
+include(srcdir("helper_functions.jl")); include(srcdir("masks.jl"));
 
 # ╔═╡ e716418b-ddee-4bc2-987a-d4e4b314d93a
 begin	
-	ENERGIES = [80,135]
+	ENERGIES = [80, 135]
 	SIZES = ["Small", "Medium", "Large", "Small1","Medium1","Large1"]
 	DENSITIES = ["Density1","Density2","Density3"]
 end
 
 # ╔═╡ 40521a9a-6e20-43e9-abb0-f0cc174bc06b
-#Load Calibration Parameters (Mass Decomp)
 begin
-	param_base_pth = datadir("calibration_params/")
-	small_pth = string(param_base_pth,"Small.csv")
-	med_pth = string(param_base_pth,"Medium.csv")
-	large_pth = string(param_base_pth,"Large.csv")
-
-	small_param = DataFrame(CSV.File(small_pth))
-	med_param = DataFrame(CSV.File(med_pth))
-	large_param = DataFrame(CSV.File(large_pth))
+	small_param = CSV.read(datadir("calibration_params", "Small.csv"), DataFrame)
+	med_param = CSV.read(datadir("calibration_params", "Medium.csv"), DataFrame)
+	large_param = CSV.read(datadir("calibration_params", "Large.csv"), DataFrame)
 end;
 
-# ╔═╡ 6afbc04e-e635-4599-a447-d947be4e0cb6
-function collect_tuple(tuple_array)
-    row_num = size(tuple_array)
-    col_num = length(tuple_array[1])
-    container = zeros(Int64, row_num..., col_num)
-    for i in 1:length(tuple_array)
-        container[i, :] = collect(tuple_array[i])
-    end
-    return container
-end
-
-# ╔═╡ 67d669ee-b09d-4276-a767-b8f6e90ccdb7
-function predict_concentration(x, y, p)
-	A = p[1] + (p[2] * x) + (p[3] * y) + (p[4] * x^2) + (p[5] * x * y) + (p[6] * y^2)
-	B = 1 + (p[7] * x) + (p[8] * y)
-	F = A / B
-end
+# ╔═╡ 57f0f760-2925-4aaf-a1c4-7ca882cb06d1
+ca_dens = [
+	[733, 733, 733, 411, 411, 411, 151, 151, 151],
+	[669, 669, 669, 370, 370, 370, 90, 90, 90],
+	[552, 552, 552, 222, 222, 222, 52, 52, 52],
+	[797, 797, 797, 101, 101, 101, 37, 37, 37], 
+	[403, 403, 403, 48, 48, 48, 32, 32, 32],
+	[199, 199, 199, 41, 41, 41, 27, 27, 27]
+]
 
 # ╔═╡ f9232844-0fdf-4f86-93d9-e57560962453
 begin
-	dfs = []
+	dfs_m = []
+	dfs_a = []
 	for _size in SIZES 
 		for density in DENSITIES
 			@info _size, density
@@ -77,98 +61,94 @@ begin
 				_SIZE = "large"
 			end
 				
-			root_new = string(datadir("julia_arrays",_SIZE),"/")
+			root_new = datadir("julia_arrays", _SIZE)
 	
-			mask_L_HD = Array(CSV.read(string(root_new, "mask_L_HD.csv"), 			DataFrame; header=false))
-			mask_M_HD = Array(CSV.read(string(root_new, "mask_M_HD.csv"), 
+			mask_L_HD = Array(CSV.read(joinpath(root_new, "mask_L_HD.csv"), 			DataFrame; header=false))
+			mask_M_HD = Array(CSV.read(joinpath(root_new, "mask_M_HD.csv"), 
 			DataFrame; header=false))
-			mask_S_HD = Array(CSV.read(string(root_new, "mask_S_HD.csv"), 			DataFrame; header=false))
-			mask_L_MD = Array(CSV.read(string(root_new, "mask_L_MD.csv"), DataFrame; header=false))
-			mask_M_MD = Array(CSV.read(string(root_new, "mask_M_MD.csv"), DataFrame; header=false))
-			mask_S_MD = Array(CSV.read(string(root_new, "mask_S_MD.csv"), DataFrame; header=false))
-			mask_L_LD = Array(CSV.read(string(root_new, "mask_L_LD.csv"), 			DataFrame; header=false))
-			mask_M_LD = Array(CSV.read(string(root_new, "mask_M_LD.csv"), 			DataFrame; header=false))
-			mask_S_LD = Array(CSV.read(string(root_new, "mask_S_LD.csv"), 			DataFrame; header=false))
+			mask_S_HD = Array(CSV.read(joinpath(root_new, "mask_S_HD.csv"), 			DataFrame; header=false))
+			mask_L_MD = Array(CSV.read(joinpath(root_new, "mask_L_MD.csv"), DataFrame; header=false))
+			mask_M_MD = Array(CSV.read(joinpath(root_new, "mask_M_MD.csv"), DataFrame; header=false))
+			mask_S_MD = Array(CSV.read(joinpath(root_new, "mask_S_MD.csv"), DataFrame; header=false))
+			mask_L_LD = Array(CSV.read(joinpath(root_new, "mask_L_LD.csv"), 			DataFrame; header=false))
+			mask_M_LD = Array(CSV.read(joinpath(root_new, "mask_M_LD.csv"), 			DataFrame; header=false))
+			mask_S_LD = Array(CSV.read(joinpath(root_new, "mask_S_LD.csv"), 			DataFrame; header=false))
 
 			masks = mask_L_HD+mask_L_MD+mask_L_LD+mask_M_HD+mask_M_MD+mask_M_LD+mask_S_HD+mask_S_MD+mask_S_LD;
 
-			##energy1
-			pth = datadir("dcms_measurement_new/", _size, density, string(ENERGIES[1]))		
+			## energy1
+			pth = datadir("dcms_measurement_new", _size, density, string(ENERGIES[1]))		
 			dcm = dcmdir_parse(pth)
 			dcm_array = load_dcm_array(dcm)
 			
-##Material Decomp
+			## Material Decomp
 			dilate_mask_S_HD = dilate(dilate(mask_S_HD))
 			dilate_mask_S_HD_3D = Array{Bool}(undef, size(dcm_array))
-			for z in 1:size(dcm_array, 3)
+			for z in axes(dcm_array, 3)
 				dilate_mask_S_HD_3D[:, :, z] = dilate_mask_S_HD
 			end
 		
 			dilate_mask_M_HD = dilate(dilate(mask_M_HD))
 			dilate_mask_M_HD_3D = Array{Bool}(undef, size(dcm_array))
-			for z in 1:size(dcm_array, 3)
+			for z in axes(dcm_array, 3)
 				dilate_mask_M_HD_3D[:, :, z] = dilate_mask_M_HD
 			end
 		
 			dilate_mask_L_HD = dilate(dilate(mask_L_HD))
 			dilate_mask_L_HD_3D = Array{Bool}(undef, size(dcm_array))
-			for z in 1:size(dcm_array, 3)
+			for z in axes(dcm_array, 3)
 				dilate_mask_L_HD_3D[:, :, z] = dilate_mask_L_HD
 			end
 			
 			dilate_mask_S_MD = dilate(dilate(mask_S_MD))
 			dilate_mask_S_MD_3D = Array{Bool}(undef, size(dcm_array))
-			for z in 1:size(dcm_array, 3)
+			for z in axes(dcm_array, 3)
 				dilate_mask_S_MD_3D[:, :, z] = dilate_mask_S_MD
 			end
 		
 			dilate_mask_M_MD = dilate(dilate(mask_M_MD))
 			dilate_mask_M_MD_3D = Array{Bool}(undef, size(dcm_array))
-			for z in 1:size(dcm_array, 3)
+			for z in axes(dcm_array, 3)
 				dilate_mask_M_MD_3D[:, :, z] = dilate_mask_M_MD
 			end
 			
 			dilate_mask_L_MD = dilate(dilate(mask_L_MD))
 			dilate_mask_L_MD_3D = Array{Bool}(undef, size(dcm_array))
-			for z in 1:size(dcm_array, 3)
+			for z in axes(dcm_array, 3)
 				dilate_mask_L_MD_3D[:, :, z] = dilate_mask_L_MD
 			end
 			
 			dilate_mask_S_LD = dilate(dilate(mask_S_LD))
 			dilate_mask_S_LD_3D = Array{Bool}(undef, size(dcm_array))
-			for z in 1:size(dcm_array, 3)
+			for z in axes(dcm_array, 3)
 				dilate_mask_S_LD_3D[:, :, z] = dilate_mask_S_LD
 			end
 		
 			dilate_mask_M_LD = dilate(dilate(mask_M_LD))
 			dilate_mask_M_LD_3D = Array{Bool}(undef, size(dcm_array))
-			for z in 1:size(dcm_array, 3)
+			for z in axes(dcm_array, 3)
 				dilate_mask_M_LD_3D[:, :, z] = dilate_mask_M_LD
 			end
 			
 			dilate_mask_L_LD = dilate(dilate(mask_L_LD))
 			dilate_mask_L_LD_3D = Array{Bool}(undef, size(dcm_array))
-			for z in 1:size(dcm_array, 3)
+			for z in axes(dcm_array, 3)
 				dilate_mask_L_LD_3D[:, :, z] = dilate_mask_L_LD
 			end
 
 			pixel_size = DICOMUtils.get_pixel_size(dcm[1].meta)
 			masks_3D = Array{Bool}(undef, size(dcm_array))
-			for z in 1:size(dcm_array, 3)
+			for z in axes(dcm_array, 3)
 				masks_3D[:, :, z] = masks
 			end
 			means1 = [mean(dcm_array[dilate_mask_L_HD_3D]), mean(dcm_array[dilate_mask_M_HD_3D]), mean(dcm_array[dilate_mask_S_HD_3D]), mean(dcm_array[dilate_mask_L_MD_3D]), mean(dcm_array[dilate_mask_M_MD_3D]), mean(dcm_array[dilate_mask_S_MD_3D]), mean(dcm_array[dilate_mask_L_LD_3D]), mean(dcm_array[dilate_mask_M_LD_3D]), mean(dcm_array[dilate_mask_S_LD_3D])]
 			
-			##energy2
-			pth2 = datadir("dcms_measurement_new/", _size, density, string(ENERGIES[2]))
+			## energy2
+			pth2 = datadir("dcms_measurement_new", _size, density, string(ENERGIES[2]))
 			dcm2 = dcmdir_parse(pth2)
 			dcm_array2 = load_dcm_array(dcm2)
 			
 			means2 = [mean(dcm_array2[dilate_mask_L_HD_3D]), mean(dcm_array2[dilate_mask_M_HD_3D]), mean(dcm_array2[dilate_mask_S_HD_3D]), mean(dcm_array2[dilate_mask_L_MD_3D]), mean(dcm_array2[dilate_mask_M_MD_3D]), mean(dcm_array2[dilate_mask_S_MD_3D]), mean(dcm_array2[dilate_mask_L_LD_3D]), mean(dcm_array2[dilate_mask_M_LD_3D]), mean(dcm_array2[dilate_mask_S_LD_3D])]
-
-			
-			
-			
 
 			## Calculate Predicted Densities
 			calculated_intensities = hcat(means1, means2)
@@ -179,17 +159,17 @@ begin
 
 			## Choose Calcium Density
 			if (density == "Density1") && (_size == "Large" || _size == "Medium" || _size == "Small")
-				calcium_density = calcium_densities[1]
+				calcium_density = ca_dens[1]
 			elseif (density == "Density2") && (_size == "Large" || _size == "Medium" || _size == "Small")
-				calcium_density = calcium_densities[2]
+				calcium_density = ca_dens[2]
 			elseif (density == "Density3") && (_size == "Large" || _size == "Medium" || _size == "Small")
-				calcium_density = calcium_densities[3]
+				calcium_density = ca_dens[3]
 			elseif (density == "Density1") && (_size == "Large1" || _size == "Medium1" || _size == "Small1")
-				calcium_density = calcium_densities[4]
+				calcium_density = ca_dens[4]
 			elseif (density == "Density2") && (_size == "Large1" || _size == "Medium1" || _size == "Small1")
-				calcium_density = calcium_densities[5]
+				calcium_density = ca_dens[5]
 			elseif (density == "Density3") && (_size == "Large1" || _size == "Medium1" || _size == "Small1")
-				calcium_density = calcium_densities[6]
+				calcium_density = ca_dens[6]
 			end
 
 			## Calculate Mass
@@ -220,143 +200,66 @@ begin
 				predicted_mass_ld = predicted_masses[7:9],
 			)
 
-			push!(dfs, df_results)
-
-
-
-
-
-			#Load Dicoms
-			root_path = string(datadir("dcms_measurement_new", _SIZE,string(density),string(energy)));
-
-			dcm = dcmdir_parse(root_path)
-			dcm_array = load_dcm_array(dcm)
-	
-			dcm_path_list = dcm_list_builder(root_path);
-# 				#@info dcm_path_list
-			pth = dcm_path_list[1];
-			scan = basename(pth);
-			header, dcm_array, slice_thick_ori1 = dcm_reader(pth);
-
-		#Agatson Scoring
-		
-			#High Density
-			arr = dcm_array[:, :, :];
+			push!(dfs_m, df_results)
 			
-			mask_L_HD_3D = Array{Bool}(undef, size(arr));
-			for z in 1:size(arr, 3)
-				##should I fix this >
-				mask_L_HD_3D[:, :, z] = dilate(dilate(mask_L_HD))
-			end;
-			mean(arr[erode(erode(erode(erode(erode(mask_L_HD_3D)))))])
-			##Dilated Mask
-			dilated_mask_L_HD = dilate_mask_large(mask_L_HD_3D);
-			
+
+			# Agatson Scoring
+			header = dcm[1].meta
 			pixel_size = DICOMUtils.get_pixel_size(header)				
-			overlayed_mask_l_hd = create_mask(arr, dilated_mask_L_HD);
+		
+			## High Density
+			overlayed_mask_l_hd = create_mask(dcm_array, dilate_mask_L_HD_3D);
 			alg = Agatston()
 			avg_mass_cals = 0.0007975563520531468
 			agat_l_hd, mass_l_hd = score(overlayed_mask_l_hd, pixel_size, avg_mass_cals, alg);
 			
-			#Medium Density
-			mask_L_MD_3D = Array{Bool}(undef, size(arr));
-			for z in 1:size(arr, 3)
-				mask_L_MD_3D[:, :, z] = mask_L_MD
-			end;
-			##Dilated Mask
-			dilated_mask_L_MD = dilate_mask_large(mask_L_MD_3D);
-			# overlay_mask_plot(arr, dilated_mask_L_MD, h2, "dilated mask");
-			overlayed_mask_l_md = create_mask(arr, dilated_mask_L_MD);
+			# Medium Density
+			overlayed_mask_l_md = create_mask(dcm_array, dilate_mask_L_MD_3D);
 			agat_l_md, mass_l_md = score(overlayed_mask_l_md, pixel_size, avg_mass_cals, alg);
 						
 
-			#Low Density
-			mask_L_LD_3D = Array{Bool}(undef, size(arr))
-			for z in 1:size(arr, 3)
-				mask_L_LD_3D[:, :, z] = mask_L_LD
-			end
-			##Dilated Mask
-			dilated_mask_L_LD = dilate_mask_large(mask_L_LD_3D);
-			overlayed_mask_l_ld = create_mask(arr, dilated_mask_L_LD);
+			# Low Density
+			overlayed_mask_l_ld = create_mask(dcm_array, dilate_mask_L_LD_3D);
 			agat_l_ld, mass_l_ld = score(overlayed_mask_l_ld, pixel_size, avg_mass_cals, alg)
 		
-		#Score Medium Inserts
-			#High Density
-			mask_M_HD_3D = Array{Bool}(undef, size(arr))
-			for z in 1:size(arr, 3)
-				mask_M_HD_3D[:, :, z] = mask_M_HD
-			end
-			
-			##Dilated mask
-			dilated_mask_M_HD = dilate_mask_medium(mask_M_HD_3D);
-			overlayed_mask_m_hd = create_mask(arr, dilated_mask_M_HD);
+			# Score Medium Inserts
+			# High Density
+			overlayed_mask_m_hd = create_mask(dcm_array, dilate_mask_M_HD_3D);
 			agat_m_hd, mass_m_hd = score(overlayed_mask_m_hd, pixel_size, avg_mass_cals, alg)
 
-			#Medium Density
-			mask_M_MD_3D = Array{Bool}(undef, size(arr))
-			for z in 1:size(arr, 3)
-				mask_M_MD_3D[:, :, z] = mask_M_MD
-			end
-			##Dilated mask
-			dilated_mask_M_MD = dilate_mask_medium(mask_M_MD_3D)
-			overlayed_mask_m_md = create_mask(arr, dilated_mask_M_MD);
+			# Medium Density
+			overlayed_mask_m_md = create_mask(dcm_array, dilate_mask_M_MD_3D);
 			agat_m_md, mass_m_md = score(overlayed_mask_m_md, pixel_size, avg_mass_cals, alg)
 
 			#Low Density
-
-			mask_M_LD_3D = Array{Bool}(undef, size(arr))
-			for z in 1:size(arr, 3)
-				mask_M_LD_3D[:, :, z] = mask_M_LD
-			end
-
-			dilated_mask_M_LD = dilate_mask_medium(mask_M_LD_3D);
-			overlayed_mask_m_ld = create_mask(arr, dilated_mask_M_LD);
+			overlayed_mask_m_ld = create_mask(dcm_array, dilate_mask_M_LD_3D);
 			agat_m_ld, mass_m_ld = score(overlayed_mask_m_ld, pixel_size, avg_mass_cals, alg)
 
-		#Score Small Inserts
-			#High Density
-			mask_S_HD_3D = Array{Bool}(undef, size(arr))
-			for z in 1:size(arr, 3)
-				mask_S_HD_3D[:, :, z] = mask_S_HD
-			end
-			
-			##Dilated mask
-			dilated_mask_S_HD = dilate_mask_small(mask_S_HD_3D);
-			overlayed_mask_s_hd = create_mask(arr, dilated_mask_S_HD);
+			# Score Small Inserts
+			# High Density
+			overlayed_mask_s_hd = create_mask(dcm_array, dilate_mask_S_HD_3D);
 			agat_s_hd, mass_s_hd = score(overlayed_mask_s_hd, pixel_size, avg_mass_cals, alg)
 
-			#Medium Density
-			mask_S_MD_3D = Array{Bool}(undef, size(arr))
-			for z in 1:size(arr, 3)
-				mask_S_MD_3D[:, :, z] = mask_S_MD
-			end
-			dilated_mask_S_MD = dilate_mask_small(mask_S_MD_3D);
-			overlayed_mask_s_md = create_mask(arr, dilated_mask_S_MD);
+			# Medium Density
+			overlayed_mask_s_md = create_mask(dcm_array, dilate_mask_S_MD_3D);
 			agat_s_md, mass_s_md = score(overlayed_mask_s_md, pixel_size, avg_mass_cals, alg)
 
 			#Low Density
-			mask_S_LD_3D = Array{Bool}(undef, size(arr))
-			for z in 1:size(arr, 3)
-				mask_S_LD_3D[:, :, z] = mask_S_LD
-			end
-
-			##Dilated mask
-			dilated_mask_S_LD = dilate_mask_small(mask_S_LD_3D);
-			overlayed_mask_s_ld = create_mask(arr, dilated_mask_S_LD);
+			overlayed_mask_s_ld = create_mask(dcm_array, dilate_mask_S_LD_3D);
 			agat_s_ld, mass_s_ld = score(overlayed_mask_s_ld, pixel_size, avg_mass_cals, alg)
 
-		#Results
+			# Results
 			
 			calcium_densities = [733, 733, 733, 411, 411, 411, 151, 151, 151]; 
 			gt_masses = calcium_densities .* vols2 .* 3
 			inserts = ["Low Density", "Medium Density", "High Density"]
 
-			##Agatston
+			## Agatston
 			calculated_agat_large = [agat_l_ld, agat_l_md, agat_l_hd]
 			calculated_agat_medium = [agat_m_ld, agat_m_md, agat_m_hd]
 			calculated_agat_small = [agat_s_ld, agat_s_md, agat_s_hd]
 
-			##Mass
+			## Mass
 			volume_gt = [7.065, 63.585, 176.625]
 			calculated_mass_large = [mass_l_ld, mass_l_md, mass_l_hd]
 			calculated_mass_medium = [mass_m_ld, mass_m_md, mass_m_hd]
@@ -367,27 +270,33 @@ begin
 
 
 			df = DataFrame(;
-				scan=scan,
 				inserts=inserts,
 				calculated_agat_large=calculated_agat_large,
 				calculated_agat_medium=calculated_agat_medium,
 				calculated_agat_small=calculated_agat_small,
-				#ground_truth_mass_large=ground_truth_mass_large,
 				ground_truth_mass_hd = gt_masses[1:3],
 				predicted_mass_hd = predicted_mass_hd,
-				#ground_truth_mass_medium=ground_truth_mass_medium,
 				ground_truth_mass_md = gt_masses[4:6],
 				predicted_mass_md=predicted_mass_md,
-				#ground_truth_mass_small=ground_truth_mass_small,
 				ground_truth_mass_ld = gt_masses[7:9],
 				predicted_mass_ld = predicted_mass_ld,
 				avg_mass_cals = avg_mass_cals,
 			)
 			
-			
-			push!(dfs,df)
+			push!(dfs_a, df)
 		end
 	end
+end
+
+# ╔═╡ c56131ff-ef0e-413b-886a-ef2be0e2489f
+begin
+    new_df_m = vcat(dfs_m[1:length(dfs_m)]...)
+    output_path_m = datadir("results", "material_decomposition.csv")
+    CSV.write(output_path_m, new_df_m)
+
+	new_df_a = vcat(dfs_a[1:length(dfs_a)]...)
+    output_path_a = datadir("results", "agatston.csv")
+    CSV.write(output_path_a, new_df_a)
 end
 
 # ╔═╡ Cell order:
@@ -396,6 +305,6 @@ end
 # ╠═efdd5526-1c01-438f-a4d2-47adb669289c
 # ╠═e716418b-ddee-4bc2-987a-d4e4b314d93a
 # ╠═40521a9a-6e20-43e9-abb0-f0cc174bc06b
-# ╠═6afbc04e-e635-4599-a447-d947be4e0cb6
-# ╠═67d669ee-b09d-4276-a767-b8f6e90ccdb7
+# ╠═57f0f760-2925-4aaf-a1c4-7ca882cb06d1
 # ╠═f9232844-0fdf-4f86-93d9-e57560962453
+# ╠═c56131ff-ef0e-413b-886a-ef2be0e2489f
