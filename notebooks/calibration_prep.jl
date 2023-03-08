@@ -15,6 +15,7 @@ macro bind(def, element)
 end
 
 # ╔═╡ b7334ee2-9e52-49da-9ae2-9ea31df8b171
+# ╠═╡ show_logs = false
 begin
 	using DrWatson
 	@quickactivate "cac-dual-energy"

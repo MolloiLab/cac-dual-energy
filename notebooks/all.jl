@@ -57,10 +57,13 @@ begin
 			#Load masks 
 			if (_size == SIZES[1] || _size == SIZES[4])
 				_SIZE = "small"
+				_SIZE2 = "Small"
 			elseif (_size == SIZES[2] || _size == SIZES[5])
 				_SIZE = "medium"
+				_SIZE2 = "Medium"
 			elseif (_size == SIZES[3] || _size == SIZES[6])
 				_SIZE = "large"
+				_SIZE2 = "Large"
 			end
 				
 			root_new = datadir("julia_arrays", _SIZE)
@@ -258,57 +261,102 @@ begin
 			)
 
 			push!(dfs_m, df_results)			
+
+			#---------------- Calibration ----------------#
+			dcms_cal = dcmdir_parse(datadir("dcms_calibration", "Small", "80"))
+			dcms_cal_arr = load_dcm_array(dcms_cal)
+			center = [187, 318]
+			calibration_rod = zeros(25, 25, size(dcms_cal_arr, 3))
+			for z in axes(dcms_cal_arr, 3)
+				rows, cols, depth = size(dcms_cal_arr)
+				half_row, half_col = center[1], center[2]
+				offset = 12
+				row_range = half_row-offset:half_row+offset
+				col_range = half_col-offset:half_col+offset	
+				calibration_rod[:, :, z] .= dcms_cal_arr[row_range, col_range, z];
+			end
+			hu_calcium = mean(calibration_rod[:, :, 5])
+			ρ_calcium = 0.200
 			
 			#---------------- Agatston ----------------#
+			mass_calibration = ρ_calcium / hu_calcium
+			@info mass_calibration
 			header = dcm[1].meta
-			pixel_size = DICOMUtils.get_pixel_size(header)				
+			pixel_size = DICOMUtils.get_pixel_size(header)
+			alg = Agatston()
+			kV=80
+
+			overlayed_bkg_mask_L = create_mask(dcm_array, dilated_mask_L_bkg)
+			overlayed_bkg_mask_M = create_mask(dcm_array, dilated_mask_M_bkg)
+			overlayed_bkg_mask_S = create_mask(dcm_array, dilated_mask_S_bkg)
+
+			agat_bkg, mass_bkg_large = score(
+				overlayed_bkg_mask_L,
+				pixel_size,
+				mass_calibration,
+				alg;
+				kV=kV
+			)
+			agat_bkg, mass_bkg_medium = score(
+				overlayed_bkg_mask_M,
+				pixel_size,
+				mass_calibration,
+				alg;
+				kV=kV
+			)
+			agat_bkg, mass_bkg_small = score(
+				overlayed_bkg_mask_S,
+				pixel_size,
+				mass_calibration,
+				alg;
+				kV=kV
+			)
+
+			mass_bkg = [mass_bkg_large, mass_bkg_medium, mass_bkg_small]
 		
 			## High Density
 			overlayed_mask_l_hd = create_mask(dcm_array, dilate_mask_L_HD_3D);
-			alg = Agatston()
-			avg_mass_cals = 0.0007975563520531468
-			agat_l_hd, mass_l_hd = score(overlayed_mask_l_hd, pixel_size, avg_mass_cals, alg);
+			agat_l_hd, mass_l_hd = score(overlayed_mask_l_hd, pixel_size, mass_calibration, alg);
 			
 			# Medium Density
 			overlayed_mask_l_md = create_mask(dcm_array, dilate_mask_L_MD_3D);
-			agat_l_md, mass_l_md = score(overlayed_mask_l_md, pixel_size, avg_mass_cals, alg);
+			agat_l_md, mass_l_md = score(overlayed_mask_l_md, pixel_size, mass_calibration, alg);
 						
 
 			# Low Density
 			overlayed_mask_l_ld = create_mask(dcm_array, dilate_mask_L_LD_3D);
-			agat_l_ld, mass_l_ld = score(overlayed_mask_l_ld, pixel_size, avg_mass_cals, alg)
+			agat_l_ld, mass_l_ld = score(overlayed_mask_l_ld, pixel_size, mass_calibration, alg)
 		
 			# Score Medium Inserts
 			# High Density
 			overlayed_mask_m_hd = create_mask(dcm_array, dilate_mask_M_HD_3D);
-			agat_m_hd, mass_m_hd = score(overlayed_mask_m_hd, pixel_size, avg_mass_cals, alg)
+			agat_m_hd, mass_m_hd = score(overlayed_mask_m_hd, pixel_size, mass_calibration, alg)
 
 			# Medium Density
 			overlayed_mask_m_md = create_mask(dcm_array, dilate_mask_M_MD_3D);
-			agat_m_md, mass_m_md = score(overlayed_mask_m_md, pixel_size, avg_mass_cals, alg)
+			agat_m_md, mass_m_md = score(overlayed_mask_m_md, pixel_size, mass_calibration, alg)
 
 			#Low Density
 			overlayed_mask_m_ld = create_mask(dcm_array, dilate_mask_M_LD_3D);
-			agat_m_ld, mass_m_ld = score(overlayed_mask_m_ld, pixel_size, avg_mass_cals, alg)
+			agat_m_ld, mass_m_ld = score(overlayed_mask_m_ld, pixel_size, mass_calibration, alg)
 
 			# Score Small Inserts
 			# High Density
 			overlayed_mask_s_hd = create_mask(dcm_array, dilate_mask_S_HD_3D);
-			agat_s_hd, mass_s_hd = score(overlayed_mask_s_hd, pixel_size, avg_mass_cals, alg)
+			agat_s_hd, mass_s_hd = score(overlayed_mask_s_hd, pixel_size, mass_calibration, alg)
 
 			# Medium Density
 			overlayed_mask_s_md = create_mask(dcm_array, dilate_mask_S_MD_3D);
-			agat_s_md, mass_s_md = score(overlayed_mask_s_md, pixel_size, avg_mass_cals, alg)
+			agat_s_md, mass_s_md = score(overlayed_mask_s_md, pixel_size, mass_calibration, alg)
 
 			#Low Density
 			overlayed_mask_s_ld = create_mask(dcm_array, dilate_mask_S_LD_3D);
-			agat_s_ld, mass_s_ld = score(overlayed_mask_s_ld, pixel_size, avg_mass_cals, alg)
+			agat_s_ld, mass_s_ld = score(overlayed_mask_s_ld, pixel_size, mass_calibration, alg)
 
 			# Results
 			
 			calcium_densities = [733, 733, 733, 411, 411, 411, 151, 151, 151]; 
 			gt_masses = calcium_densities .* vols2 .* 3
-			inserts = ["Low Density", "Medium Density", "High Density"]
 
 			## Agatston
 			calculated_agat_large = [agat_l_ld, agat_l_md, agat_l_hd]
@@ -316,17 +364,15 @@ begin
 			calculated_agat_small = [agat_s_ld, agat_s_md, agat_s_hd]
 
 			## Mass
-			volume_gt = [7.065, 63.585, 176.625]
-			calculated_mass_large = [mass_l_ld, mass_l_md, mass_l_hd]
-			calculated_mass_medium = [mass_m_ld, mass_m_md, mass_m_hd]
 			predicted_mass_hd = [mass_l_hd, mass_m_hd, mass_s_hd]
 			predicted_mass_md = [mass_l_md, mass_m_hd, mass_s_hd]
 			predicted_mass_ld = [mass_l_ld, mass_m_ld, mass_s_ld]
-			calculated_mass_small = [mass_s_ld, mass_s_md, mass_s_hd]
 
 
 			df = DataFrame(;
-				inserts=inserts,
+				phantom_size = _size,
+				density = density,
+				insert_sizes = ["Large", "Medium", "Small"],
 				calculated_agat_large=calculated_agat_large,
 				calculated_agat_medium=calculated_agat_medium,
 				calculated_agat_small=calculated_agat_small,
@@ -336,137 +382,82 @@ begin
 				predicted_mass_md=predicted_mass_md,
 				ground_truth_mass_ld = gt_masses[7:9],
 				predicted_mass_ld = predicted_mass_ld,
-				avg_mass_cals = avg_mass_cals,
+				bkg_mass = mass_bkg
 			)
 			
 			push!(dfs_a, df)
 
-			# #---------------- Volume Fraction ----------------#
+			#---------------- Volume Fraction ----------------#
 
-			# ## Calibration Prep
-			# density_array = []
-			# if density == DENSITIES[1]
-			# 	density_array = [0.025, 0.050, 0.100]
-			# elseif density == DENSITIES[2] || density == DENSITIES[3]
-			# 	density_array = [0.200, 0.400, 0.800]
-			# end
-			# # array_filtered = abs.(mapwindow(median, calcium_image[:, :, 2], (3, 3)))
-			# # bool_arr = array_filtered .> 0
-			# # bool_arr_erode = (((erode(erode(bool_arr)))))
-			# # c_img = calcium_image[:, :, 1:3]
-			# # # mask_cal_3D = Array{Bool}(undef, size(c_img))
-			# # # for z in 1:size(c_img, 3)
-			# # #     mask_cal_3D[:, :, z] = bool_arr_erode
-			# # # end
+			# Background
+			hu_heart_tissue_large_bkg = mean(dcm_array[ring_mask_L_bkg])
+			mass_large_bkg = score(dcm_array[dilated_mask_L_bkg], hu_calcium, hu_heart_tissue_large_bkg, voxel_size, ρ_calcium, VolumeFraction())
 
-			# # # if VENDOR == "80"
-			# # #     hu_calcium = 377.3
-			# # # elseif VENDOR == "100"
-			# # #     hu_calcium = 326.0
-			# # # elseif VENDOR == "120"
-			# # #     hu_calcium = 296.9
-			# # # else
-			# # #     hu_calcium = 282.7
-			# # # end
-			# # mask_cal_3D = zeros(size(c_img))
-			# # for z in 1:size(c_img, 3)
-			# # 	mask_cal_3D[:, :, z] = Bool.(erode(bool_arr_erode))
-			# # end
-		
-			# # hu_calcium = mean(c_img[Bool.(mask_cal_3D)])
-			# hu_calcium = 200
-			# ρ_calcium = 0.2
+			hu_heart_tissue_medium_bkg = mean(dcm_array[ring_mask_M_bkg])
+			mass_medium_bkg = score(dcm_array[dilated_mask_M_bkg], hu_calcium, hu_heart_tissue_medium_bkg, voxel_size, ρ_calcium, VolumeFraction())
 
+			hu_heart_tissue_small_bkg = mean(dcm_array[ring_mask_S_bkg])
+			mass_small_bkg = score(dcm_array[dilated_mask_S_bkg], hu_calcium, hu_heart_tissue_small_bkg, voxel_size, ρ_calcium, VolumeFraction())
 
-			# # Background
-			# hu_heart_tissue_large_bkg = mean(dcm_array[ring_mask_L_bkg])
-			# mass_large_bkg = score(dcm_array[dilated_mask_L_bkg], hu_calcium, hu_heart_tissue_large_bkg, voxel_size, ρ_calcium, VolumeFraction())
+			mass_bkg = [mass_large_bkg, mass_medium_bkg, mass_small_bkg]
 
-			# hu_heart_tissue_medium_bkg = mean(dcm_array[ring_mask_M_bkg])
-			# mass_medium_bkg = score(dcm_array[dilated_mask_M_bkg], hu_calcium, hu_heart_tissue_medium_bkg, voxel_size, ρ_calcium, VolumeFraction())
+			# Score Large Inserts
+			## High Density
+			hu_heart_tissue_large_hd = mean(dcm_array[dilated_mask_L_bkg])
+			mass_large_hd = score(dcm_array[dilated_mask_L_bkg], hu_calcium, hu_heart_tissue_large_hd, voxel_size, ρ_calcium, VolumeFraction())
 
-			# hu_heart_tissue_small_bkg = mean(dcm_array[ring_mask_S_bkg])
-			# mass_small_bkg = score(dcm_array[dilated_mask_S_bkg], hu_calcium, hu_heart_tissue_small_bkg, voxel_size, ρ_calcium, VolumeFraction())
+			## Medium Density
+			hu_heart_tissue_large_md = mean(dcm_array[ring_mask_L_bkg])
+			mass_large_md = score(dcm_array[dilated_mask_L_bkg], hu_calcium, hu_heart_tissue_large_md, voxel_size, ρ_calcium, VolumeFraction())
 
-			# mass_bkg = [mass_large_bkg, mass_medium_bkg, mass_small_bkg]
+			## Low Density
+			hu_heart_tissue_large_ld = mean(dcm_array[ring_mask_L_bkg])
+			mass_large_ld = score(dcm_array[dilated_mask_L_bkg], hu_calcium, hu_heart_tissue_large_ld, voxel_size, ρ_calcium, VolumeFraction())
 
-			# # Score Large Inserts
-			# ## High Density
-			# hu_heart_tissue_large_hd = mean(dcm_array[dilated_mask_L_bkg])
-			# mass_large_hd = score(dcm_array[dilated_mask_L_bkg], hu_calcium, hu_heart_tissue_large_hd, voxel_size, ρ_calcium, VolumeFraction())
+			# Score Medium Inserts
+			## High Density
+			hu_heart_tissue_medium_hd = mean(dcm_array[ring_mask_M_bkg])
+			mass_medium_hd = score(dcm_array[dilated_mask_M_bkg], hu_calcium, hu_heart_tissue_medium_hd, voxel_size, ρ_calcium, VolumeFraction())
 
-			# ## Medium Density
-			# hu_heart_tissue_large_md = mean(dcm_array[ring_mask_L_bkg])
-			# mass_large_md = score(dcm_array[dilated_mask_L_bkg], hu_calcium, hu_heart_tissue_large_md, voxel_size, ρ_calcium, VolumeFraction())
+			## Medium Density
+			hu_heart_tissue_medium_md = mean(dcm_array[ring_mask_M_bkg])
+			mass_medium_md = score(dcm_array[dilated_mask_M_bkg], hu_calcium, hu_heart_tissue_medium_md, voxel_size, ρ_calcium, VolumeFraction())
 
-			# ## Low Density
-			# hu_heart_tissue_large_ld = mean(dcm_array[ring_mask_L_bkg])
-			# mass_large_ld = score(dcm_array[dilated_mask_L_bkg], hu_calcium, hu_heart_tissue_large_ld, voxel_size, ρ_calcium, VolumeFraction())
+			## Low Density
+			hu_heart_tissue_medium_ld = mean(dcm_array[ring_mask_M_bkg])
+			mass_medium_ld = score(dcm_array[dilated_mask_M_bkg], hu_calcium, hu_heart_tissue_medium_ld, voxel_size, ρ_calcium, VolumeFraction())
 
-			# # Score Medium Inserts
-			# ## High Density
-			# hu_heart_tissue_medium_hd = mean(dcm_array[ring_mask_M_bkg])
-			# mass_medium_hd = score(dcm_array[dilated_mask_M_bkg], hu_calcium, hu_heart_tissue_medium_hd, voxel_size, ρ_calcium, VolumeFraction())
+			# Score Small Inserts
+			## High Density
+			hu_heart_tissue_small_hd = mean(dcm_array[ring_mask_S_bkg])
+			mass_small_hd = score(dcm_array[dilated_mask_S_bkg], hu_calcium, hu_heart_tissue_large_hd, voxel_size, ρ_calcium, VolumeFraction())
 
-			# ## Medium Density
-			# hu_heart_tissue_medium_md = mean(dcm_array[ring_mask_M_bkg])
-			# mass_medium_md = score(dcm_array[dilated_mask_M_bkg], hu_calcium, hu_heart_tissue_medium_md, voxel_size, ρ_calcium, VolumeFraction())
+			## Medium Density
+			hu_heart_tissue_small_md = mean(dcm_array[ring_mask_S_bkg])
+			mass_small_md = score(dcm_array[dilated_mask_S_bkg], hu_calcium, hu_heart_tissue_large_md, voxel_size, ρ_calcium, VolumeFraction())
 
-			# ## Low Density
-			# hu_heart_tissue_medium_ld = mean(dcm_array[ring_mask_M_bkg])
-			# mass_medium_ld = score(dcm_array[dilated_mask_M_bkg], hu_calcium, hu_heart_tissue_medium_ld, voxel_size, ρ_calcium, VolumeFraction())
+			## Low Density
+			hu_heart_tissue_small_ld = mean(dcm_array[ring_mask_S_bkg])
+			mass_small_ld = score(dcm_array[dilated_mask_S_bkg], hu_calcium, hu_heart_tissue_large_ld, voxel_size, ρ_calcium, VolumeFraction())
 
-			# # Score Small Inserts
-			# ## High Density
-			# hu_heart_tissue_small_hd = mean(dcm_array[ring_mask_S_bkg])
-			# mass_small_hd = score(dcm_array[dilated_mask_S_bkg], hu_calcium, hu_heart_tissue_large_hd, voxel_size, ρ_calcium, VolumeFraction())
+			# Results
+			predicted_mass_hd = [mass_large_hd, mass_medium_hd, mass_small_hd]
+			predicted_mass_md = [mass_large_md, mass_medium_hd, mass_small_hd]
+			predicted_mass_ld = [mass_large_ld, mass_medium_ld, mass_small_ld]
 
-			# ## Medium Density
-			# hu_heart_tissue_small_md = mean(dcm_array[ring_mask_S_bkg])
-			# mass_small_md = score(dcm_array[dilated_mask_S_bkg], hu_calcium, hu_heart_tissue_large_md, voxel_size, ρ_calcium, VolumeFraction())
-
-			# ## Low Density
-			# hu_heart_tissue_small_ld = mean(dcm_array[ring_mask_S_bkg])
-			# mass_small_ld = score(dcm_array[dilated_mask_S_bkg], hu_calcium, hu_heart_tissue_large_ld, voxel_size, ρ_calcium, VolumeFraction())
-
-			# # Results
-
-			# inserts = ["Low Density", "Medium Density", "High Density"]
-			# volume_gt = [7.065, 63.585, 176.625]
-			# ground_truth_mass_large = [
-			# 	volume_gt[3] * density_array[1],
-			# 	volume_gt[3] * density_array[2],
-			# 	volume_gt[3] * density_array[3],
-			# ] # mg
-
-			# calculated_mass_large = [mass_large_ld, mass_large_md, mass_large_hd]
-			# ground_truth_mass_medium = [
-			# 	volume_gt[2] * density_array[1],
-			# 	volume_gt[2] * density_array[2],
-			# 	volume_gt[2] * density_array[3],
-			# ] # mg
-			# calculated_mass_medium = [mass_medium_ld, mass_medium_md, mass_medium_hd]
-			# ground_truth_mass_small = [
-			# 	volume_gt[1] * density_array[1],
-			# 	volume_gt[1] * density_array[2],
-			# 	volume_gt[1] * density_array[3],
-			# ] # mg
-			# calculated_mass_small = [mass_small_ld, mass_small_md, mass_small_hd]
-
-			# df = DataFrame(;
-				
-			# 	SIZE=_size,
-			# 	DENSITY=density,
-			# 	inserts=inserts,
-			# 	ground_truth_mass_large=ground_truth_mass_large,
-			# 	calculated_mass_large=calculated_mass_large,
-			# 	ground_truth_mass_medium=ground_truth_mass_medium,
-			# 	calculated_mass_medium=calculated_mass_medium,
-			# 	ground_truth_mass_small=ground_truth_mass_small,
-			# 	calculated_mass_small=calculated_mass_small,
-			# 	mass_bkg=mass_bkg
-			# )
-			# push!(dfs_v, df)
+			df = DataFrame(;
+				phantom_size = _size,
+				density = density,
+				insert_sizes = ["Large", "Medium", "Small"],
+				ground_truth_mass_hd = gt_masses[1:3],
+				predicted_mass_hd = predicted_mass_hd,
+				ground_truth_mass_md = gt_masses[4:6],
+				predicted_mass_md=predicted_mass_md,
+				ground_truth_mass_ld = gt_masses[7:9],
+				predicted_mass_ld = predicted_mass_ld,
+				bkg_mass = mass_bkg
+			)
+			push!(dfs_v, df)
 		end
 	end
 end
@@ -474,19 +465,14 @@ end
 # ╔═╡ c56131ff-ef0e-413b-886a-ef2be0e2489f
 begin
     new_df_m = vcat(dfs_m[1:length(dfs_m)]...)
-    output_path_m = datadir("results", "material_decomposition.csv")
-    CSV.write(output_path_m, new_df_m)
+    CSV.write(datadir("results", "material_decomposition.csv"), new_df_m)
 
 	new_df_a = vcat(dfs_a[1:length(dfs_a)]...)
-    output_path_a = datadir("results", "agatston.csv")
-    CSV.write(output_path_a, new_df_a)
+    CSV.write(datadir("results", "agatston.csv"), new_df_a)
+
+	new_df_v = vcat(dfs_v[1:length(dfs_v)]...)
+    CSV.write(datadir("results", "volume_fraction.csv"), new_df_v)
 end
-
-# ╔═╡ 06cded7d-3a79-479a-8e70-4fe5c62405b3
-new_df_m
-
-# ╔═╡ 0c57e8a4-891e-4988-bd27-6b255c6e0e20
-dfs_v
 
 # ╔═╡ Cell order:
 # ╠═6c99eb9f-99ee-40d9-b43b-e220d0c991ab
@@ -497,5 +483,3 @@ dfs_v
 # ╠═57f0f760-2925-4aaf-a1c4-7ca882cb06d1
 # ╠═f9232844-0fdf-4f86-93d9-e57560962453
 # ╠═c56131ff-ef0e-413b-886a-ef2be0e2489f
-# ╠═06cded7d-3a79-479a-8e70-4fe5c62405b3
-# ╠═0c57e8a4-891e-4988-bd27-6b255c6e0e20

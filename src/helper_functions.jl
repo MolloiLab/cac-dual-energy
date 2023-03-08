@@ -8,6 +8,28 @@ function collect_tuple(tuple_array)
     return container
 end
 
+function calculate_coefficients(df;
+    label1=:ground_truth_mass_hd,
+    label2=:ground_truth_mass_md,
+    label3=:ground_truth_mass_ld,
+    label4=:predicted_mass_hd,
+    label5=:predicted_mass_md,
+    label6=:predicted_mass_ld
+)
+    gt_array = vec(hcat(df[!, label1], df[!, label2], df[!, label3]))
+    calc_array = vec(hcat(df[!, label4], df[!, label5], df[!, label6]))
+    data = DataFrame(X=gt_array, Y=calc_array)
+    model = lm(@formula(Y ~ X), data)
+    r_squared = GLM.r2(model)
+    rms_values = [
+        rms(data[!, :X], data[!, :Y]),
+        rmsd(data[!, :Y], GLM.predict(model))
+    ]
+    pred = GLM.predict(model, DataFrame(X=collect(1:1000)))
+
+    return coef(model), r_squared, rms_values, pred
+end
+
 function overlay_mask_bind(mask)
     indices = findall(x -> x == 1, mask)
     indices = Tuple.(indices)
@@ -31,7 +53,7 @@ function overlay_mask_plot(array, mask, var, title::AbstractString)
         label_array[:, 1][indices_lbl],
         label_array[:, 2][indices_lbl];
         markersize=1,
-        color=:red,
+        color=:red
     )
     return fig
 end
@@ -64,7 +86,7 @@ function create_mask(array, mask)
 end
 
 function predict_concentration(x, y, p)
-	A = p[1] + (p[2] * x) + (p[3] * y) + (p[4] * x^2) + (p[5] * x * y) + (p[6] * y^2)
-	B = 1 + (p[7] * x) + (p[8] * y)
-	F = A / B
+    A = p[1] + (p[2] * x) + (p[3] * y) + (p[4] * x^2) + (p[5] * x * y) + (p[6] * y^2)
+    B = 1 + (p[7] * x) + (p[8] * y)
+    F = A / B
 end
