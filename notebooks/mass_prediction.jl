@@ -28,6 +28,9 @@ begin
 	using StatsBase: quantile!
 end
 
+# ╔═╡ 4e3eef4f-2c88-4cb4-9531-8a99a1f88430
+include(srcdir("helper_functions.jl")); include(srcdir("masks.jl"));
+
 # ╔═╡ 7f5a24e6-e9b0-4a72-a9fa-98ab01a20125
 TableOfContents()
 
@@ -242,10 +245,12 @@ end;
 size0
 
 # ╔═╡ a6545e74-b85d-4ab5-bf7e-f0ebd07bd57b
-begin
-	small_center = [175, 320]
-	medium_center = [230, 370]
-	large_center = [285, 420]
+if size0 == "Small"
+	global center_pt = [175, 320]
+elseif size0 == "Medium"
+	global center_pt = [230, 370]
+elseif size0 == "Large"
+	global center_pt = [285, 420]
 end
 
 # ╔═╡ 25f36ebb-0b26-4f27-b42a-3ee08afb9496
@@ -256,7 +261,7 @@ let
 	f = Figure()
 	ax = Axis(f[1, 1])
 	heatmap!(dcm_array[:, :, 2], colormap=:grays)
-	scatter!(285:285, 420:420, markersize=10)
+	scatter!(center_pt[1]:center_pt[1], center_pt[2]:center_pt[2], markersize=10)
 
 	f
 end
@@ -319,9 +324,6 @@ density = predict_concentration(x, y, Array(small_param)) # mg/mL
 # ╔═╡ 065e98af-e61d-444b-bb61-f4d551b5d570
 calculated_intensities = hcat(means1, means2)
 
-# ╔═╡ 62991bf5-ccbe-48e3-a1e0-314b3308d6b5
-
-
 # ╔═╡ ea38774f-f3db-459c-8b89-738dc8821595
 begin
 	predicted_densities = zeros(9)
@@ -333,6 +335,39 @@ end
 
 # ╔═╡ 1ac7e2e1-2ff1-4db1-a2cc-99aef25694e3
 predicted_densities
+
+# ╔═╡ 131eb855-0f18-485f-ab8a-55eafb479f9c
+md"""
+## Background
+"""
+
+# ╔═╡ 81e9db91-e2e6-4df1-b9f2-8bdcc76b6fba
+begin
+	background_mask = zeros(size(dcm_array)...)
+	background_mask[
+		(center_pt[1]-5):(center_pt[1]+5),
+		(center_pt[2]-5):(center_pt[2]+5),
+		2,
+	] .= 1
+	
+	dilated_mask_L_bkg = dilate_mask_large_bkg(Bool.(background_mask))
+	ring_mask_L_bkg = ring_mask_large(dilated_mask_L_bkg)
+	
+	dilated_mask_M_bkg = dilate_mask_medium_bkg(Bool.(background_mask))
+	ring_mask_M_bkg = ring_mask_medium(dilated_mask_M_bkg)
+	
+	dilated_mask_S_bkg = dilate_mask_small_bkg(Bool.(background_mask))
+	ring_mask_S_bkg = ring_mask_small(dilated_mask_S_bkg)
+end;
+
+# ╔═╡ 370632c3-5d65-47f7-9d76-1eb022789b23
+means1_bkg = mean(dcm_array[dilated_mask_L_bkg])
+
+# ╔═╡ ff9ffdcd-fcf3-4125-9760-0eec31db31e5
+means2_bkg = mean(dcm_array2[dilated_mask_L_bkg])
+
+# ╔═╡ 5474c9a6-4f00-4fdb-8c95-274e17b301fe
+predicted_densities_bkg = score(means1_bkg, means2_bkg, Array(small_param), CalciumScoring.MaterialDecomposition())
 
 # ╔═╡ 643432e9-efce-4cb2-a5d1-58b6cf0db565
 md"""
@@ -426,7 +461,7 @@ df_results = DataFrame(
 # ╠═6e251fe4-1cb0-435d-92e1-d39767b0a252
 # ╠═a6545e74-b85d-4ab5-bf7e-f0ebd07bd57b
 # ╟─25f36ebb-0b26-4f27-b42a-3ee08afb9496
-# ╠═cbde3751-b335-4aeb-98ce-b4a30ff2f2f2
+# ╟─cbde3751-b335-4aeb-98ce-b4a30ff2f2f2
 # ╠═bef52d62-75f0-450e-83df-9f635dad2f5b
 # ╠═1a254747-0f14-4731-b014-2d59ff6a759b
 # ╟─10273dd0-a77f-4c43-be5a-a5696aa5688b
@@ -440,9 +475,14 @@ df_results = DataFrame(
 # ╠═68f34789-b1fe-458e-a584-46a9e4466b4c
 # ╠═adf21604-8031-4740-a82f-e57c04556bb0
 # ╠═065e98af-e61d-444b-bb61-f4d551b5d570
-# ╠═62991bf5-ccbe-48e3-a1e0-314b3308d6b5
 # ╠═ea38774f-f3db-459c-8b89-738dc8821595
 # ╠═1ac7e2e1-2ff1-4db1-a2cc-99aef25694e3
+# ╟─131eb855-0f18-485f-ab8a-55eafb479f9c
+# ╠═4e3eef4f-2c88-4cb4-9531-8a99a1f88430
+# ╠═81e9db91-e2e6-4df1-b9f2-8bdcc76b6fba
+# ╠═370632c3-5d65-47f7-9d76-1eb022789b23
+# ╠═ff9ffdcd-fcf3-4125-9760-0eec31db31e5
+# ╠═5474c9a6-4f00-4fdb-8c95-274e17b301fe
 # ╟─643432e9-efce-4cb2-a5d1-58b6cf0db565
 # ╟─7ed5bc6c-960b-4d3c-8d41-ff48d251a238
 # ╠═d6347374-594d-4075-8fc8-74f4a93e1e41
