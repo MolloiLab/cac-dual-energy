@@ -86,60 +86,79 @@ begin
 			dcm = dcmdir_parse(pth)
 			dcm_array = load_dcm_array(dcm)
 			
-			
-			dilate_mask_S_HD = dilate(dilate(mask_S_HD))
-			dilate_mask_S_HD_3D = Array{Bool}(undef, size(dcm_array))
+			mask_L_HD_3D = Array{Bool}(undef, size(dcm_array))
 			for z in axes(dcm_array, 3)
-				dilate_mask_S_HD_3D[:, :, z] = dilate_mask_S_HD
+				mask_L_HD_3D[:, :, z] = mask_L_HD
 			end
-		
-			dilate_mask_M_HD = dilate(dilate(mask_M_HD))
-			dilate_mask_M_HD_3D = Array{Bool}(undef, size(dcm_array))
+			dilated_mask_L_HD = dilate_mask_large(mask_L_HD_3D)
+			ring_mask_L_HD = ring_mask_large(dilated_mask_L_HD)
+
+			### Medium Density
+			mask_L_MD_3D = Array{Bool}(undef, size(dcm_array))
 			for z in axes(dcm_array, 3)
-				dilate_mask_M_HD_3D[:, :, z] = dilate_mask_M_HD
+				mask_L_MD_3D[:, :, z] = mask_L_MD
 			end
-		
-			dilate_mask_L_HD = dilate(dilate(mask_L_HD))
-			dilate_mask_L_HD_3D = Array{Bool}(undef, size(dcm_array))
+			dilated_mask_L_MD = dilate_mask_large(mask_L_MD_3D)
+			ring_mask_L_MD = ring_mask_large(dilated_mask_L_MD)
+
+			### Low Density
+			mask_L_LD_3D = Array{Bool}(undef, size(dcm_array))
 			for z in axes(dcm_array, 3)
-				dilate_mask_L_HD_3D[:, :, z] = dilate_mask_L_HD
+				mask_L_LD_3D[:, :, z] = mask_L_LD
 			end
-			
-			dilate_mask_S_MD = dilate(dilate(mask_S_MD))
-			dilate_mask_S_MD_3D = Array{Bool}(undef, size(dcm_array))
+			dilated_mask_L_LD = dilate_mask_large(mask_L_LD_3D)
+			ring_mask_L_LD = ring_mask_large(dilated_mask_L_LD)
+
+
+			## Medium 
+			### High Density
+			mask_M_HD_3D = Array{Bool}(undef, size(dcm_array))
 			for z in axes(dcm_array, 3)
-				dilate_mask_S_MD_3D[:, :, z] = dilate_mask_S_MD
+				mask_M_HD_3D[:, :, z] = mask_M_HD
 			end
-		
-			dilate_mask_M_MD = dilate(dilate(mask_M_MD))
-			dilate_mask_M_MD_3D = Array{Bool}(undef, size(dcm_array))
+			dilated_mask_M_HD = dilate_mask_medium(mask_M_HD_3D)
+			ring_mask_M_HD = ring_mask_medium(dilated_mask_M_HD)
+
+			### Medium Density
+			mask_M_MD_3D = Array{Bool}(undef, size(dcm_array))
 			for z in axes(dcm_array, 3)
-				dilate_mask_M_MD_3D[:, :, z] = dilate_mask_M_MD
+				mask_M_MD_3D[:, :, z] = mask_M_MD
 			end
-			
-			dilate_mask_L_MD = dilate(dilate(mask_L_MD))
-			dilate_mask_L_MD_3D = Array{Bool}(undef, size(dcm_array))
+			dilated_mask_M_MD = dilate_mask_medium(mask_M_MD_3D)
+			ring_mask_M_MD = ring_mask_medium(dilated_mask_M_MD)
+
+			### Low Density
+			mask_M_LD_3D = Array{Bool}(undef, size(dcm_array))
 			for z in axes(dcm_array, 3)
-				dilate_mask_L_MD_3D[:, :, z] = dilate_mask_L_MD
+				mask_M_LD_3D[:, :, z] = mask_M_LD
 			end
-			
-			dilate_mask_S_LD = dilate(dilate(mask_S_LD))
-			dilate_mask_S_LD_3D = Array{Bool}(undef, size(dcm_array))
+			dilated_mask_M_LD = dilate_mask_medium(mask_M_LD_3D)
+			ring_mask_M_LD = ring_mask_medium(dilated_mask_M_LD)
+
+			## Small
+			### High Density
+			mask_S_HD_3D = Array{Bool}(undef, size(dcm_array))
 			for z in axes(dcm_array, 3)
-				dilate_mask_S_LD_3D[:, :, z] = dilate_mask_S_LD
+				mask_S_HD_3D[:, :, z] = mask_S_HD
 			end
-		
-			dilate_mask_M_LD = dilate(dilate(mask_M_LD))
-			dilate_mask_M_LD_3D = Array{Bool}(undef, size(dcm_array))
+			dilated_mask_S_HD = dilate_mask_small(mask_S_HD_3D)
+			ring_mask_S_HD = ring_mask_small(dilated_mask_S_HD)
+
+			### Medium Density
+			mask_S_MD_3D = Array{Bool}(undef, size(dcm_array))
 			for z in axes(dcm_array, 3)
-				dilate_mask_M_LD_3D[:, :, z] = dilate_mask_M_LD
+				mask_S_MD_3D[:, :, z] = mask_S_MD
 			end
-			
-			dilate_mask_L_LD = dilate(dilate(mask_L_LD))
-			dilate_mask_L_LD_3D = Array{Bool}(undef, size(dcm_array))
+			dilated_mask_S_MD = dilate_mask_small(mask_S_MD_3D)
+			ring_mask_S_MD = ring_mask_small(dilated_mask_S_MD)
+
+			### Low Density
+			mask_S_LD_3D = Array{Bool}(undef, size(dcm_array))
 			for z in axes(dcm_array, 3)
-				dilate_mask_L_LD_3D[:, :, z] = dilate_mask_L_LD
+				mask_S_LD_3D[:, :, z] = mask_S_LD
 			end
+			dilated_mask_S_LD = dilate_mask_small(mask_S_LD_3D)
+			ring_mask_S_LD = ring_mask_small(dilated_mask_S_LD)
 
 			pixel_size = DICOMUtils.get_pixel_size(dcm[1].meta)
 			masks_3D = Array{Bool}(undef, size(dcm_array))
@@ -159,7 +178,7 @@ begin
 				center_insert = [285, 420]
 				# center_insert = [420, 285]
 			end
-			background_mask = zeros(size(dcm_array)...)
+			background_mask = zeros(size(dcm_array[:, :, 1:3])...)
 			background_mask[
 				(center_insert[1]-5):(center_insert[1]+5),
 				(center_insert[2]-5):(center_insert[2]+5),
@@ -177,13 +196,13 @@ begin
 
 			#---------------- Material Decomposition ----------------#
 			means1 = [
-				mean(dcm_array[dilate_mask_L_HD_3D]),
-				mean(dcm_array[dilate_mask_M_HD_3D]), mean(dcm_array[dilate_mask_S_HD_3D]), mean(dcm_array[dilate_mask_L_MD_3D]), mean(dcm_array[dilate_mask_M_MD_3D]), mean(dcm_array[dilate_mask_S_MD_3D]), mean(dcm_array[dilate_mask_L_LD_3D]), mean(dcm_array[dilate_mask_M_LD_3D]), mean(dcm_array[dilate_mask_S_LD_3D])
+				mean(dcm_array[dilated_mask_L_HD]),
+				mean(dcm_array[dilated_mask_M_HD]), mean(dcm_array[dilated_mask_S_HD]), mean(dcm_array[dilated_mask_L_MD]), mean(dcm_array[dilated_mask_M_MD]), mean(dcm_array[dilated_mask_S_MD]), mean(dcm_array[dilated_mask_L_LD]), mean(dcm_array[dilated_mask_M_LD]), mean(dcm_array[dilated_mask_S_LD])
 			]
 			means1_bkg = [
-				mean(dcm_array[dilated_mask_L_bkg]),
-				mean(dcm_array[dilated_mask_M_bkg]),
-				mean(dcm_array[dilated_mask_S_bkg])
+				mean(dcm_array[:, :, 1:3][dilated_mask_L_bkg]),
+				mean(dcm_array[:, :, 1:3][dilated_mask_M_bkg]),
+				mean(dcm_array[:, :, 1:3][dilated_mask_S_bkg])
 			]
 			
 			## energy2
@@ -192,12 +211,12 @@ begin
 			dcm_array2 = load_dcm_array(dcm2)
 			
 			means2 = [
-				mean(dcm_array2[dilate_mask_L_HD_3D]), mean(dcm_array2[dilate_mask_M_HD_3D]), mean(dcm_array2[dilate_mask_S_HD_3D]), mean(dcm_array2[dilate_mask_L_MD_3D]), mean(dcm_array2[dilate_mask_M_MD_3D]), mean(dcm_array2[dilate_mask_S_MD_3D]), mean(dcm_array2[dilate_mask_L_LD_3D]), mean(dcm_array2[dilate_mask_M_LD_3D]), mean(dcm_array2[dilate_mask_S_LD_3D])
+				mean(dcm_array2[dilated_mask_L_HD]), mean(dcm_array2[dilated_mask_M_HD]), mean(dcm_array2[dilated_mask_S_HD]), mean(dcm_array2[dilated_mask_L_MD]), mean(dcm_array2[dilated_mask_M_MD]), mean(dcm_array2[dilated_mask_S_MD]), mean(dcm_array2[dilated_mask_L_LD]), mean(dcm_array2[dilated_mask_M_LD]), mean(dcm_array2[dilated_mask_S_LD])
 			]
 			means2_bkg = [
-				mean(dcm_array2[dilated_mask_L_bkg]),
-				mean(dcm_array2[dilated_mask_M_bkg]),
-				mean(dcm_array2[dilated_mask_S_bkg])
+				mean(dcm_array2[:, :, 1:3][dilated_mask_L_bkg]),
+				mean(dcm_array2[:, :, 1:3][dilated_mask_M_bkg]),
+				mean(dcm_array2[:, :, 1:3][dilated_mask_S_bkg])
 			]
 
 			## Calculate Predicted Densities
@@ -231,7 +250,7 @@ begin
 			## Calculate Mass
 			voxel_size = pixel_size[1] * pixel_size[2] * pixel_size[3] * 1e-3 # cm^3
 		
-			vol_small, vol_medium, vol_large = count(dilate_mask_S_HD_3D) * voxel_size, count(dilate_mask_M_HD_3D) * voxel_size, count(dilate_mask_L_HD_3D) * voxel_size #cm^3
+			vol_small, vol_medium, vol_large = count(dilated_mask_S_HD) * voxel_size, count(dilated_mask_M_HD) * voxel_size, count(dilated_mask_L_HD) * voxel_size #cm^3
 		
 			vol_slice1 = [vol_large, vol_medium, vol_small]
 			vols = vcat(vol_slice1, vol_slice1, vol_slice1)# cm^3
@@ -283,43 +302,17 @@ begin
 			
 			hu_calcium = mean(calibration_rod[:, :, 5])
 			ρ_calcium = 0.200
-
-			# erode_mask_cal = erode(erode(mask_L_HD))
-			# erode_mask_cal_3D = Array{Bool}(undef, size(dcm_array))
-			# for z in axes(dcm_array, 3)
-			# 	erode_mask_cal_3D[:, :, z] = erode_mask_cal
-			# end
-			
-			# hu_calcium = mean(dcm_array[erode_mask_cal_3D])
-			# local ρ_calcium
-			# if _size == "Small"
-			# 	ρ_calcium = ca_dens[1][1] * 1e-3
-			# elseif _size == "Medium"
-			# 	ρ_calcium = ca_dens[2][1] * 1e-3
-			# elseif _size == "Large"
-			# 	ρ_calcium = ca_dens[3][1] * 1e-3
-			# elseif _size == "Small1"
-			# 	ρ_calcium = ca_dens[4][1] * 1e-3
-			# elseif _size == "Medium1"
-			# 	ρ_calcium = ca_dens[5][1] * 1e-3
-			# elseif _size == "Large1"
-			# 	ρ_calcium = ca_dens[6][1] * 1e-3
-			# end
-
-			# hu_calcium = 300
-			# ρ_calcium = 0.200
 			
 			#---------------- Agatston ----------------#
 			mass_calibration = ρ_calcium / hu_calcium
-			@info mass_calibration
 			header = dcm[1].meta
 			pixel_size = DICOMUtils.get_pixel_size(header)
 			alg = Agatston()
 			kV=80
 
-			overlayed_bkg_mask_L = create_mask(dcm_array, dilated_mask_L_bkg)
-			overlayed_bkg_mask_M = create_mask(dcm_array, dilated_mask_M_bkg)
-			overlayed_bkg_mask_S = create_mask(dcm_array, dilated_mask_S_bkg)
+			overlayed_bkg_mask_L = create_mask(dcm_array[:, :, 1:3], dilated_mask_L_bkg)
+			overlayed_bkg_mask_M = create_mask(dcm_array[:, :, 1:3], dilated_mask_M_bkg)
+			overlayed_bkg_mask_S = create_mask(dcm_array[:, :, 1:3], dilated_mask_S_bkg)
 
 			agat_bkg, mass_bkg_large = score(
 				overlayed_bkg_mask_L,
@@ -346,49 +339,45 @@ begin
 			mass_bkg = [mass_bkg_large, mass_bkg_medium, mass_bkg_small]
 		
 			## High Density
-			overlayed_mask_l_hd = create_mask(dcm_array, dilate_mask_L_HD_3D);
+			overlayed_mask_l_hd = create_mask(dcm_array, dilated_mask_L_HD);
 			agat_l_hd, mass_l_hd = score(overlayed_mask_l_hd, pixel_size, mass_calibration, alg);
 			
 			# Medium Density
-			overlayed_mask_l_md = create_mask(dcm_array, dilate_mask_L_MD_3D);
+			overlayed_mask_l_md = create_mask(dcm_array, dilated_mask_L_MD);
 			agat_l_md, mass_l_md = score(overlayed_mask_l_md, pixel_size, mass_calibration, alg);
 						
 
 			# Low Density
-			overlayed_mask_l_ld = create_mask(dcm_array, dilate_mask_L_LD_3D);
+			overlayed_mask_l_ld = create_mask(dcm_array, dilated_mask_L_LD);
 			agat_l_ld, mass_l_ld = score(overlayed_mask_l_ld, pixel_size, mass_calibration, alg)
 		
 			# Score Medium Inserts
 			# High Density
-			overlayed_mask_m_hd = create_mask(dcm_array, dilate_mask_M_HD_3D);
+			overlayed_mask_m_hd = create_mask(dcm_array, dilated_mask_M_HD);
 			agat_m_hd, mass_m_hd = score(overlayed_mask_m_hd, pixel_size, mass_calibration, alg)
 
 			# Medium Density
-			overlayed_mask_m_md = create_mask(dcm_array, dilate_mask_M_MD_3D);
+			overlayed_mask_m_md = create_mask(dcm_array, dilated_mask_M_MD);
 			agat_m_md, mass_m_md = score(overlayed_mask_m_md, pixel_size, mass_calibration, alg)
 
 			#Low Density
-			overlayed_mask_m_ld = create_mask(dcm_array, dilate_mask_M_LD_3D);
+			overlayed_mask_m_ld = create_mask(dcm_array, dilated_mask_M_LD);
 			agat_m_ld, mass_m_ld = score(overlayed_mask_m_ld, pixel_size, mass_calibration, alg)
 
 			# Score Small Inserts
 			# High Density
-			overlayed_mask_s_hd = create_mask(dcm_array, dilate_mask_S_HD_3D);
+			overlayed_mask_s_hd = create_mask(dcm_array, dilated_mask_S_HD);
 			agat_s_hd, mass_s_hd = score(overlayed_mask_s_hd, pixel_size, mass_calibration, alg)
 
 			# Medium Density
-			overlayed_mask_s_md = create_mask(dcm_array, dilate_mask_S_MD_3D);
+			overlayed_mask_s_md = create_mask(dcm_array, dilated_mask_S_MD);
 			agat_s_md, mass_s_md = score(overlayed_mask_s_md, pixel_size, mass_calibration, alg)
 
 			#Low Density
-			overlayed_mask_s_ld = create_mask(dcm_array, dilate_mask_S_LD_3D);
+			overlayed_mask_s_ld = create_mask(dcm_array, dilated_mask_S_LD);
 			agat_s_ld, mass_s_ld = score(overlayed_mask_s_ld, pixel_size, mass_calibration, alg)
 
 			# Results
-			
-			calcium_densities = [733, 733, 733, 411, 411, 411, 151, 151, 151]; 
-			gt_masses = calcium_densities .* vols2 .* 3
-
 			## Agatston
 			calculated_agat_large = [agat_l_ld, agat_l_md, agat_l_hd]
 			calculated_agat_medium = [agat_m_ld, agat_m_md, agat_m_hd]
@@ -396,8 +385,20 @@ begin
 
 			## Mass
 			predicted_mass_hd = [mass_l_hd, mass_m_hd, mass_s_hd]
-			predicted_mass_md = [mass_l_md, mass_m_hd, mass_s_hd]
+			predicted_mass_md = [mass_l_md, mass_m_md, mass_s_md]
 			predicted_mass_ld = [mass_l_ld, mass_m_ld, mass_s_ld]
+
+			# L/HD
+			# M/HD
+			# S/HD
+
+			# L/MD
+			# M/MD
+			# S/MD
+
+			# L/LD
+			# M/LD
+			# S/LD
 
 
 			df = DataFrame(;
@@ -421,59 +422,60 @@ begin
 			#---------------- Volume Fraction ----------------#
 
 			# Background
-			hu_heart_tissue_large_bkg = mean(dcm_array[ring_mask_L_bkg])
-			mass_large_bkg = score(dcm_array[dilated_mask_L_bkg], hu_calcium, hu_heart_tissue_large_bkg, voxel_size, ρ_calcium, VolumeFraction())
+			hu_heart_tissue_large_bkg = mean(dcm_array[:, :, 1:3][ring_mask_L_bkg])
+			mass_large_bkg = score(dcm_array[:, :, 1:3][dilated_mask_L_bkg], hu_calcium, hu_heart_tissue_large_bkg, voxel_size, ρ_calcium, VolumeFraction())
 
-			hu_heart_tissue_medium_bkg = mean(dcm_array[ring_mask_M_bkg])
-			mass_medium_bkg = score(dcm_array[dilated_mask_M_bkg], hu_calcium, hu_heart_tissue_medium_bkg, voxel_size, ρ_calcium, VolumeFraction())
+			hu_heart_tissue_medium_bkg = mean(dcm_array[:, :, 1:3][ring_mask_M_bkg])
+			mass_medium_bkg = score(dcm_array[:, :, 1:3][dilated_mask_M_bkg], hu_calcium, hu_heart_tissue_medium_bkg, voxel_size, ρ_calcium, VolumeFraction())
 
-			hu_heart_tissue_small_bkg = mean(dcm_array[ring_mask_S_bkg])
-			mass_small_bkg = score(dcm_array[dilated_mask_S_bkg], hu_calcium, hu_heart_tissue_small_bkg, voxel_size, ρ_calcium, VolumeFraction())
+			hu_heart_tissue_small_bkg = mean(dcm_array[:, :, 1:3][ring_mask_S_bkg])
+			mass_small_bkg = score(dcm_array[:, :, 1:3][dilated_mask_S_bkg], hu_calcium, hu_heart_tissue_small_bkg, voxel_size, ρ_calcium, VolumeFraction())
 
 			mass_bkg = [mass_large_bkg, mass_medium_bkg, mass_small_bkg]
 
 			# Score Large Inserts
 			## High Density
-			hu_heart_tissue_large_hd = mean(dcm_array[dilated_mask_L_bkg])
-			mass_large_hd = score(dcm_array[dilated_mask_L_bkg], hu_calcium, hu_heart_tissue_large_hd, voxel_size, ρ_calcium, VolumeFraction())
-
+			voxel_size_2 = pixel_size[1] * pixel_size[2] * pixel_size[3]
+			hu_heart_tissue_large_hd = mean(dcm_array[ring_mask_L_HD])
+			mass_large_hd = score(dcm_array[dilated_mask_L_HD], hu_calcium, hu_heart_tissue_large_hd, voxel_size_2, ρ_calcium, VolumeFraction())
+			
 			## Medium Density
-			hu_heart_tissue_large_md = mean(dcm_array[ring_mask_L_bkg])
-			mass_large_md = score(dcm_array[dilated_mask_L_bkg], hu_calcium, hu_heart_tissue_large_md, voxel_size, ρ_calcium, VolumeFraction())
+			hu_heart_tissue_large_md = mean(dcm_array[ring_mask_L_MD])
+			mass_large_md = score(dcm_array[dilated_mask_L_MD], hu_calcium, hu_heart_tissue_large_md, voxel_size_2, ρ_calcium, VolumeFraction())
 
 			## Low Density
-			hu_heart_tissue_large_ld = mean(dcm_array[ring_mask_L_bkg])
-			mass_large_ld = score(dcm_array[dilated_mask_L_bkg], hu_calcium, hu_heart_tissue_large_ld, voxel_size, ρ_calcium, VolumeFraction())
+			hu_heart_tissue_large_ld = mean(dcm_array[ring_mask_L_LD])
+			mass_large_ld = score(dcm_array[dilated_mask_L_LD], hu_calcium, hu_heart_tissue_large_ld, voxel_size_2, ρ_calcium, VolumeFraction())
 
 			# Score Medium Inserts
 			## High Density
-			hu_heart_tissue_medium_hd = mean(dcm_array[ring_mask_M_bkg])
-			mass_medium_hd = score(dcm_array[dilated_mask_M_bkg], hu_calcium, hu_heart_tissue_medium_hd, voxel_size, ρ_calcium, VolumeFraction())
+			hu_heart_tissue_medium_hd = mean(dcm_array[ring_mask_M_HD])
+			mass_medium_hd = score(dcm_array[dilated_mask_M_HD], hu_calcium, hu_heart_tissue_medium_hd, voxel_size_2, ρ_calcium, VolumeFraction())
 
 			## Medium Density
-			hu_heart_tissue_medium_md = mean(dcm_array[ring_mask_M_bkg])
-			mass_medium_md = score(dcm_array[dilated_mask_M_bkg], hu_calcium, hu_heart_tissue_medium_md, voxel_size, ρ_calcium, VolumeFraction())
+			hu_heart_tissue_medium_md = mean(dcm_array[ring_mask_M_MD])
+			mass_medium_md = score(dcm_array[dilated_mask_M_MD], hu_calcium, hu_heart_tissue_medium_md, voxel_size_2, ρ_calcium, VolumeFraction())
 
 			## Low Density
-			hu_heart_tissue_medium_ld = mean(dcm_array[ring_mask_M_bkg])
-			mass_medium_ld = score(dcm_array[dilated_mask_M_bkg], hu_calcium, hu_heart_tissue_medium_ld, voxel_size, ρ_calcium, VolumeFraction())
+			hu_heart_tissue_medium_ld = mean(dcm_array[ring_mask_M_LD])
+			mass_medium_ld = score(dcm_array[dilated_mask_M_LD], hu_calcium, hu_heart_tissue_medium_ld, voxel_size_2, ρ_calcium, VolumeFraction())
 
 			# Score Small Inserts
 			## High Density
-			hu_heart_tissue_small_hd = mean(dcm_array[ring_mask_S_bkg])
-			mass_small_hd = score(dcm_array[dilated_mask_S_bkg], hu_calcium, hu_heart_tissue_large_hd, voxel_size, ρ_calcium, VolumeFraction())
+			hu_heart_tissue_small_hd = mean(dcm_array[ring_mask_S_HD])
+			mass_small_hd = score(dcm_array[dilated_mask_S_HD], hu_calcium, hu_heart_tissue_large_hd, voxel_size_2, ρ_calcium, VolumeFraction())
 
 			## Medium Density
-			hu_heart_tissue_small_md = mean(dcm_array[ring_mask_S_bkg])
-			mass_small_md = score(dcm_array[dilated_mask_S_bkg], hu_calcium, hu_heart_tissue_large_md, voxel_size, ρ_calcium, VolumeFraction())
+			hu_heart_tissue_small_md = mean(dcm_array[ring_mask_S_MD])
+			mass_small_md = score(dcm_array[dilated_mask_S_MD], hu_calcium, hu_heart_tissue_large_md, voxel_size_2, ρ_calcium, VolumeFraction())
 
 			## Low Density
-			hu_heart_tissue_small_ld = mean(dcm_array[ring_mask_S_bkg])
-			mass_small_ld = score(dcm_array[dilated_mask_S_bkg], hu_calcium, hu_heart_tissue_large_ld, voxel_size, ρ_calcium, VolumeFraction())
+			hu_heart_tissue_small_ld = mean(dcm_array[ring_mask_S_LD])
+			mass_small_ld = score(dcm_array[dilated_mask_S_LD], hu_calcium, hu_heart_tissue_large_ld, voxel_size_2, ρ_calcium, VolumeFraction())
 
 			# Results
 			predicted_mass_hd = [mass_large_hd, mass_medium_hd, mass_small_hd]
-			predicted_mass_md = [mass_large_md, mass_medium_hd, mass_small_hd]
+			predicted_mass_md = [mass_l_md, mass_m_md, mass_s_md]
 			predicted_mass_ld = [mass_large_ld, mass_medium_ld, mass_small_ld]
 
 			df = DataFrame(;
@@ -505,14 +507,23 @@ begin
     CSV.write(datadir("results", "volume_fraction.csv"), new_df_v)
 end
 
-# ╔═╡ 0e9fabb1-05c3-4fcb-9f35-304c8782a7b6
-new_df_m
-
 # ╔═╡ 38ca9627-9ac7-4fe3-a017-592db6145281
 new_df_a
 
+# ╔═╡ 0e9fabb1-05c3-4fcb-9f35-304c8782a7b6
+new_df_m
+
 # ╔═╡ 17e2adf7-df30-4fd7-a46b-07dd8a0b562b
 new_df_v
+
+# ╔═╡ fbf091c3-104d-4399-aa19-f94b9291496f
+mean(abs.(new_df_v[!, :ground_truth_mass_hd] .- new_df_v[!, :predicted_mass_hd]))
+
+# ╔═╡ 59818079-6d3c-4a0c-bb2a-070c566210c2
+mean(abs.(new_df_m[!, :ground_truth_mass_hd] .- new_df_m[!, :predicted_mass_hd]))
+
+# ╔═╡ b4b65c86-3d83-48a5-b509-2e07224b5742
+mean(abs.(new_df_a[!, :ground_truth_mass_hd] .- new_df_a[!, :predicted_mass_hd]))
 
 # ╔═╡ Cell order:
 # ╠═6c99eb9f-99ee-40d9-b43b-e220d0c991ab
@@ -523,6 +534,9 @@ new_df_v
 # ╠═57f0f760-2925-4aaf-a1c4-7ca882cb06d1
 # ╠═f9232844-0fdf-4f86-93d9-e57560962453
 # ╠═c56131ff-ef0e-413b-886a-ef2be0e2489f
-# ╠═0e9fabb1-05c3-4fcb-9f35-304c8782a7b6
 # ╠═38ca9627-9ac7-4fe3-a017-592db6145281
+# ╠═0e9fabb1-05c3-4fcb-9f35-304c8782a7b6
 # ╠═17e2adf7-df30-4fd7-a46b-07dd8a0b562b
+# ╠═fbf091c3-104d-4399-aa19-f94b9291496f
+# ╠═59818079-6d3c-4a0c-bb2a-070c566210c2
+# ╠═b4b65c86-3d83-48a5-b509-2e07224b5742

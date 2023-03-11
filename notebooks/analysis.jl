@@ -210,9 +210,9 @@ md"""
 begin
 	false_negative_m = []
 	for i in 1:3:nrow(df_m)-2
-		mean_m, std_m = mean(df_m[i:i+2, :bkg_mass]), std(df_m[i:i+2, :bkg_mass])*std_level 
+		mean_m, std_m = mean(df_m[i:i+2, :bkg_mass]), std(df_m[i:i+2, :bkg_mass]) * std_level 
 		array_m = hcat(df_m[i:i+2, :predicted_mass_hd], df_m[i:i+2, :predicted_mass_md], df_m[i:i+2, :predicted_mass_ld]);
-		neg = length(findall(x -> x <= mean_m + (std_m * std_level), array_m))
+		neg = length(findall(x -> x <= mean_m + std_m, array_m))
 		push!(false_negative_m, neg)
 	end
 end
@@ -220,8 +220,27 @@ end
 # ╔═╡ 0691ad9a-10c4-489b-a6bf-03dd46ef7f09
 total_zero_m = sum(false_negative_m)
 
+# ╔═╡ 0e9db9e2-5a41-48a6-9d11-7c38f172c131
+md"""
+#### Volume Fraction
+"""
+
+# ╔═╡ 4234bb6c-d94a-418f-a6cd-2bf1df8b7aff
+begin
+	false_negative_v = []
+	for i in 1:3:nrow(df_v)-2
+		mean_v, std_v = mean(df_v[i:i+2, :bkg_mass]), std(df_v[i:i+2, :bkg_mass]) * std_level 
+		array_v = hcat(df_v[i:i+2, :predicted_mass_hd], df_v[i:i+2, :predicted_mass_md], df_v[i:i+2, :predicted_mass_ld]);
+		neg = length(findall(x -> x <= mean_v + std_v, array_v))
+		push!(false_negative_v, neg)
+	end
+end
+
+# ╔═╡ 99ea3200-1d7d-4f6f-9ec0-8dd9427aadfc
+total_zero_v = sum(false_negative_v)
+
 # ╔═╡ 364ade03-b649-43be-9580-85f0e2fae7bd
-total_zero_m, num_zero_a
+total_zero_m, total_zero_v, num_zero_a
 
 # ╔═╡ 881488ad-3eaf-46ed-8a86-7207df316ca4
 md"""
@@ -251,15 +270,34 @@ md"""
 begin
 	false_positive_m = []
 	for i in 1:3:nrow(df_m)-2
-		mean_i, std_i = mean(df_m[i:i+2, :bkg_mass]), std(df_m[i:i+2, :bkg_mass])*std_level
-		array_i_pos = df_m[i:i+2, :bkg_mass]
-		pos = length(findall(x -> x > (mean_i + (std_level * std_level)), array_i_pos))
+		mean_m, std_m = mean(df_m[i:i+2, :bkg_mass]), std(df_m[i:i+2, :bkg_mass]) * std_level
+		array_m_pos = df_m[i:i+2, :bkg_mass]
+		pos = length(findall(x -> x > mean_m + std_m, array_m_pos))
 		push!(false_positive_m, pos)
 	end
 end
 
 # ╔═╡ 0e428d01-39de-4274-a83d-1e2369ae35f5
 total_zero_m_pos = sum(false_positive_m)
+
+# ╔═╡ af083168-9989-407d-980b-9fbde3c8397c
+md"""
+#### Volume Fraction
+"""
+
+# ╔═╡ 89445e61-9398-477f-afc0-5c69ea6e3212
+begin
+	false_positive_v = []
+	for i in 1:3:nrow(df_v)-2
+		mean_v, std_v = mean(df_v[i:i+2, :bkg_mass]), std(df_v[i:i+2, :bkg_mass]) * std_level
+		array_v_pos = df_v[i:i+2, :bkg_mass]
+		pos = length(findall(x -> x > mean_v + std_v, array_v_pos))
+		push!(false_positive_v, pos)
+	end
+end
+
+# ╔═╡ 7ec8ae80-bdb9-46ea-adb5-0f76e861e50d
+total_zero_v_pos = sum(false_positive_v)
 
 # ╔═╡ 3560a592-71fa-4817-82b1-3946842d6f34
 function sensitivity_specificity()
@@ -269,38 +307,42 @@ function sensitivity_specificity()
     ##-- A --##
     ax = Axis(
 		f[1, 1]; 
-		xticks = (1:2, ["Material Decomposition", "Agatston"]),
+		xticks = (1:3, ["Material Decomposition", "Volume Fraction", "Agatston"]),
 		title = "False-Negative (CAC=0)",
 		ylabel = "False-Negative (%)",
 		yticks = [0, 25, 50, 75, 100]
 	)
 
-    table = [1, 2]
+    table = [1, 2, 3]
 	h1 = (total_zero_m / total_cac) * 100
-	h2 = (num_zero_a / total_cac) * 100 
-	heights1 = [h1, h2]
+	h2 = (total_zero_v / total_cac) * 100
+	h3 = (num_zero_a / total_cac) * 100 
+	heights1 = [h1, h2, h3]
 	l1 = @sprintf "%.2f" h1
 	l2 = @sprintf "%.2f" h2
-    barplot!(table, heights1; color=colors[1:2], bar_labels=[l1, l2])
+	l3 = @sprintf "%.2f" h3
+    barplot!(table, heights1; color=colors[1:3], bar_labels=[l1, l2, l3])
 
     ylims!(ax; low=0, high=100)
 
 	##-- B --##
-	ax = Axis(
+    ax = Axis(
 		f[2, 1]; 
-		xticks = (1:2, ["Material Decomposition", "Agatston"]),
-		title = "False-Positive (CAC>0)",
-		ylabel = "False-Positive (%)",
+		xticks = (1:3, ["Material Decomposition", "Volume Fraction", "Agatston"]),
+		title = "False-Negative (CAC=0)",
+		ylabel = "False-Negative (%)",
 		yticks = [0, 25, 50, 75, 100]
 	)
 
-    table = [1, 2]
+    table = [1, 2, 3]
 	h1 = (total_zero_m_pos / total_cac_pos) * 100
-	h2 = (total_zero_a_pos / total_cac_pos) * 100
-    heights1 = [h1, h2]
+	h2 = (total_zero_v_pos / total_cac_pos) * 100
+	h3 = (total_zero_a_pos / total_cac_pos) * 100
+    heights1 = [h1, h2, h3]
 	l1 = @sprintf "%.2f" h1
 	l2 = @sprintf "%.2f" h2
-    barplot!(table, heights1; color=colors[1:2], bar_labels=[l1, l2])
+	l3 = @sprintf "%.2f" h3
+    barplot!(table, heights1; color=colors[1:3], bar_labels=[l1, l2, l3])
 
     ylims!(ax; low=0, high=100)
 
@@ -355,6 +397,9 @@ total_zero_m_pos, total_zero_a_pos
 # ╟─b8da1153-ae0a-4baa-9576-dffd76d2267b
 # ╠═fdd43925-fc6a-4e26-8aea-8beb6c2c21fe
 # ╠═0691ad9a-10c4-489b-a6bf-03dd46ef7f09
+# ╟─0e9db9e2-5a41-48a6-9d11-7c38f172c131
+# ╠═4234bb6c-d94a-418f-a6cd-2bf1df8b7aff
+# ╠═99ea3200-1d7d-4f6f-9ec0-8dd9427aadfc
 # ╠═364ade03-b649-43be-9580-85f0e2fae7bd
 # ╟─881488ad-3eaf-46ed-8a86-7207df316ca4
 # ╟─5302a029-1bd0-4582-99bb-d60832cc696c
@@ -364,6 +409,9 @@ total_zero_m_pos, total_zero_a_pos
 # ╟─78a2bdd7-54c6-46a0-a9b4-a28f3c97448a
 # ╠═7be46fdc-0554-48b2-aa8e-55770c68f16b
 # ╠═0e428d01-39de-4274-a83d-1e2369ae35f5
+# ╟─af083168-9989-407d-980b-9fbde3c8397c
+# ╠═89445e61-9398-477f-afc0-5c69ea6e3212
+# ╠═7ec8ae80-bdb9-46ea-adb5-0f76e861e50d
 # ╟─3560a592-71fa-4817-82b1-3946842d6f34
 # ╟─d8a3e7f0-65d8-47d7-885a-f3fa6ba63739
 # ╠═07bab099-72e6-4315-aeac-ee7acc73f3dc
