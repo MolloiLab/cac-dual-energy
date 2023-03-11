@@ -82,7 +82,7 @@ begin
 			masks = mask_L_HD+mask_L_MD+mask_L_LD+mask_M_HD+mask_M_MD+mask_M_LD+mask_S_HD+mask_S_MD+mask_S_LD;
 
 			## energy1
-			pth = datadir("dcms_measurement_new", _size, density, string(ENERGIES[1]))		
+			pth = datadir("dcms_measurement_combined", _size, density, string(ENERGIES[1]))		
 			dcm = dcmdir_parse(pth)
 			dcm_array = load_dcm_array(dcm)
 			
@@ -187,7 +187,7 @@ begin
 			]
 			
 			## energy2
-			pth2 = datadir("dcms_measurement_new", _size, density, string(ENERGIES[2]))
+			pth2 = datadir("dcms_measurement_combined", _size, density, string(ENERGIES[2]))
 			dcm2 = dcmdir_parse(pth2)
 			dcm_array2 = load_dcm_array(dcm2)
 			
@@ -263,20 +263,51 @@ begin
 			push!(dfs_m, df_results)			
 
 			#---------------- Calibration ----------------#
-			dcms_cal = dcmdir_parse(datadir("dcms_calibration", "Small", "80"))
-			dcms_cal_arr = load_dcm_array(dcms_cal)
-			center = [187, 318]
-			calibration_rod = zeros(25, 25, size(dcms_cal_arr, 3))
-			for z in axes(dcms_cal_arr, 3)
-				rows, cols, depth = size(dcms_cal_arr)
-				half_row, half_col = center[1], center[2]
+			local centers
+			if _size == "Small" || _size == "Small1"
+				centers = [187, 318]
+			elseif _size == "Medium" || _size == "Medium1"
+				centers = [238, 365]
+			elseif _size == "Large" || _size == "Large1"
+				centers = [285, 415]
+			end
+			calibration_rod = zeros(25, 25, size(dcm_array, 3))
+			for z in axes(dcm_array, 3)
+				rows, cols, depth = size(dcm_array)
+				half_row, half_col = centers[1], centers[2]
 				offset = 12
 				row_range = half_row-offset:half_row+offset
 				col_range = half_col-offset:half_col+offset	
-				calibration_rod[:, :, z] .= dcms_cal_arr[row_range, col_range, z];
+				calibration_rod[:, :, z] .= dcm_array[row_range, col_range, z];
 			end
+			
 			hu_calcium = mean(calibration_rod[:, :, 5])
 			ρ_calcium = 0.200
+
+			# erode_mask_cal = erode(erode(mask_L_HD))
+			# erode_mask_cal_3D = Array{Bool}(undef, size(dcm_array))
+			# for z in axes(dcm_array, 3)
+			# 	erode_mask_cal_3D[:, :, z] = erode_mask_cal
+			# end
+			
+			# hu_calcium = mean(dcm_array[erode_mask_cal_3D])
+			# local ρ_calcium
+			# if _size == "Small"
+			# 	ρ_calcium = ca_dens[1][1] * 1e-3
+			# elseif _size == "Medium"
+			# 	ρ_calcium = ca_dens[2][1] * 1e-3
+			# elseif _size == "Large"
+			# 	ρ_calcium = ca_dens[3][1] * 1e-3
+			# elseif _size == "Small1"
+			# 	ρ_calcium = ca_dens[4][1] * 1e-3
+			# elseif _size == "Medium1"
+			# 	ρ_calcium = ca_dens[5][1] * 1e-3
+			# elseif _size == "Large1"
+			# 	ρ_calcium = ca_dens[6][1] * 1e-3
+			# end
+
+			# hu_calcium = 300
+			# ρ_calcium = 0.200
 			
 			#---------------- Agatston ----------------#
 			mass_calibration = ρ_calcium / hu_calcium
@@ -474,6 +505,15 @@ begin
     CSV.write(datadir("results", "volume_fraction.csv"), new_df_v)
 end
 
+# ╔═╡ 0e9fabb1-05c3-4fcb-9f35-304c8782a7b6
+new_df_m
+
+# ╔═╡ 38ca9627-9ac7-4fe3-a017-592db6145281
+new_df_a
+
+# ╔═╡ 17e2adf7-df30-4fd7-a46b-07dd8a0b562b
+new_df_v
+
 # ╔═╡ Cell order:
 # ╠═6c99eb9f-99ee-40d9-b43b-e220d0c991ab
 # ╠═6b14198c-41bd-4f8f-8e2c-f9d31082f17c
@@ -483,3 +523,6 @@ end
 # ╠═57f0f760-2925-4aaf-a1c4-7ca882cb06d1
 # ╠═f9232844-0fdf-4f86-93d9-e57560962453
 # ╠═c56131ff-ef0e-413b-886a-ef2be0e2489f
+# ╠═0e9fabb1-05c3-4fcb-9f35-304c8782a7b6
+# ╠═38ca9627-9ac7-4fe3-a017-592db6145281
+# ╠═17e2adf7-df30-4fd7-a46b-07dd8a0b562b

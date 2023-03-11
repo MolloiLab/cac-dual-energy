@@ -15,6 +15,7 @@ macro bind(def, element)
 end
 
 # ╔═╡ 89014bd0-3d2f-4ed5-a4ec-bfa36a1b722d
+# ╠═╡ show_logs = false
 begin
 	using DrWatson
 	@quickactivate "cac-dual-energy"
@@ -23,11 +24,7 @@ end
 # ╔═╡ 71621e0e-0b10-4398-95c1-c73cab737e5b
 # ╠═╡ show_logs = false
 begin
-    using PlutoUI
-    using CairoMakie
-    using MAT
-    using DICOM
-    using DICOMUtils
+    using PlutoUI, CairoMakie, MAT, DICOM, DICOMUtils
 end
 
 # ╔═╡ 3982c500-52e3-4dad-ac99-e6423ecc3282
@@ -53,12 +50,13 @@ file_nums = [1,2,3]
 
 # ╔═╡ 6e8c4d1a-08ad-4cf7-976c-e4b718951b53
 begin
-	##for files in SIZE ONLY
+	## For files in SIZE ONLY
 	for size_folder in sizes_folders
 		for density in densities
     		for energy in energies
 				for file_num in file_nums
-				
+					
+					@info size_folder, density, energy, file_num
 					local file_size
 					if(size_folder == "Small")
 						file_size = "small"
@@ -108,8 +106,6 @@ begin
 					if !isdir(output_root)
 						mkpath(output_root)
 					end
-					global output_path
-					
 					output_path = datadir(
 						"dcms_measurement_new",
 						size_folder,
@@ -118,18 +114,18 @@ begin
 						string(file_num)*".dcm"
 					)
 					dcm_write(output_path, dcm)
-						
 				end
 			end
         end
     end
 
-		##for files in SIZE1 ONLY
+	## For files in SIZE1 ONLY
 	for size_folder1 in sizes_folders1
 		for density in densities
     		for energy in energies
 				for file_num in file_nums
-				
+
+					@info size_folder1, density, energy, file_num
 					local file_size
 					if(size_folder1 == "Small1")
 						file_size = "small"
@@ -146,7 +142,6 @@ begin
 						size_folder1,
 						density*"energy"*string(energy)*file_size*".mat"	
 					)
-					#path_root = string(joinpath(dirname(pwd()),"mat_measurement_bone_marrow/","SIZE1/"),size_folder1,"/",density,"energy",string(energy),file_size,".mat")
 					
 					vars1 = matread(path_root)
 					array1 = vars1[string("I")]
@@ -168,35 +163,21 @@ begin
 						density,
 						string(energy)
 					)
-
-					
-					#output_root = joinpath(root,"dcms_measurement_new", size_folder1, density, string(energy))
-					if !isdir(output_root)
-						mkpath(output_root)
-					end
-					global output_path
 					output_path = joinpath(output_root, string(file_num) * ".dcm")
-					#dcm_write(output_path, dcm)
-					save(output_path,dcm)
-						
+					dcm_write(output_path, dcm)
 				end
 			end
         end
     end
-
-
-
-
-
-
-
-	
 end
 
 # ╔═╡ 40095bc7-a7a5-4455-9198-52a383e5434e
 md"""
 ## Check DICOM image(s)
 """
+
+# ╔═╡ 9162cae4-c86b-4aa4-aee7-5fce03a71747
+output_path = datadir("dcms_measurement_new")
 
 # ╔═╡ 36946509-a59e-4218-b501-cb9fc401fcc9
 dcmdir_combined = dcmdir_parse(dirname(output_path));
@@ -222,7 +203,8 @@ heatmap(transpose(vol_combined[:, :, c]); colormap=:grays)
 # ╠═4eb56f0e-fbcf-40f4-befe-a5ae4a1c4a49
 # ╠═6e8c4d1a-08ad-4cf7-976c-e4b718951b53
 # ╟─40095bc7-a7a5-4455-9198-52a383e5434e
+# ╠═9162cae4-c86b-4aa4-aee7-5fce03a71747
 # ╠═36946509-a59e-4218-b501-cb9fc401fcc9
 # ╠═05a9b1a9-26c7-4472-9f3a-44e131cc84d1
-# ╠═c442c24c-2ab7-4dab-9bc1-95ec68d69996
+# ╟─c442c24c-2ab7-4dab-9bc1-95ec68d69996
 # ╠═f1a6dd2e-e9d2-4bda-aee6-0219b25a4098

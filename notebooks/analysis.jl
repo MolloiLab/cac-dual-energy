@@ -196,7 +196,7 @@ length(findall(x -> x <= 0, df_a[!, :calculated_agat_large])), length(findall(x 
 
 # ╔═╡ fb9da5d1-a8cc-4485-9cf6-ab9c98c11816
 begin
-	df_a_ld, df_a_md, df_a_hd = groupby(df_a, :inserts)
+	df_a_ld, df_a_md, df_a_hd = groupby(df_a, :insert_sizes)
 	
 	length(findall(x -> x <= 0, hcat(df_a_ld[!, :calculated_agat_large], df_a_ld[!, :calculated_agat_medium], df_a_ld[!, :calculated_agat_small]))), length(findall(x -> x <= 0, hcat(df_a_md[!, :calculated_agat_large], df_a_md[!, :calculated_agat_medium], df_a_md[!, :calculated_agat_small]))), length(findall(x -> x <= 0, hcat(df_a_hd[!, :calculated_agat_large], df_a_hd[!, :calculated_agat_medium], df_a_hd[!, :calculated_agat_small])))
 end
@@ -339,7 +339,7 @@ total_zero_m_pos, total_zero_a_pos
 # ╠═28cfcdf4-abd7-4699-bcf2-7d4af05340e1
 # ╠═684af87a-a9f2-42fd-be26-40a12719bf22
 # ╠═3d5c68d6-9e5c-430d-b17a-552bbd4d254d
-# ╠═fea99e7b-3e03-4b68-a8dd-7532a275fe27
+# ╟─fea99e7b-3e03-4b68-a8dd-7532a275fe27
 # ╟─190d1636-41ab-4e98-ae6c-5d872a742c0f
 # ╟─7ffa22cc-8214-4d39-9ff0-20b0b63f06cb
 # ╟─db529cfe-fd35-4a35-b9fd-8367bd7fb6fe
