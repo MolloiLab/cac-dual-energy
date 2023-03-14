@@ -32,15 +32,15 @@ medphys_theme = Theme(
         backgroundcolor = :white,
 		xgridcolor = :gray,
 		xgridwidth = 0.1,
-		xlabelsize = 20,
-		xticklabelsize = 20,
+		xlabelsize = 15,
+		xticklabelsize = 15,
 		ygridcolor = :gray,
 		ygridwidth = 0.1,
-		ylabelsize = 20,
-		yticklabelsize = 20,
+		ylabelsize = 15,
+		yticklabelsize = 15,
 		bottomsplinecolor = :black,
 		leftspinecolor = :black,
-		titlesize = 30
+		titlesize = 25
 	)
 );
 
@@ -67,7 +67,47 @@ co_2, r_squared_2, rms_values_2, pred_2 = calculate_coefficients(df_a);
 # ╔═╡ 3d5c68d6-9e5c-430d-b17a-552bbd4d254d
 co_3, r_squared_3, rms_values_3, pred_3 = calculate_coefficients(df_v);
 
-# ╔═╡ fea99e7b-3e03-4b68-a8dd-7532a275fe27
+# ╔═╡ 2832bccc-1e27-49da-abd8-f48dfb0a3b4e
+begin
+	#filter in only low density
+	df_m_ld_grouped, df_m_md_grouped, df_m_hd_grouped = groupby(df_m, :density)
+	df_m_ld_only = df_m_ld_grouped[!, 8:9]
+
+	#calculate stats
+	co_1_ld, r_squared_1_ld, rms_values_1_ld, pred_1_ld = calculate_coefficients_ld(df_m_ld_only);
+end;
+
+# ╔═╡ 91c0608c-9c96-4982-9238-f2aca2ce52f2
+begin
+	#filter in only low density
+	df_a_ld_grouped, df_a_md_grouped, df_a_hd_grouped = groupby(df_a, :density)
+	df_a_ld_only = df_a_ld_grouped[!, 11:12]
+	
+	#calculate stats
+	co_2_ld, r_squared_2_ld, rms_values_2_ld, pred_2_ld = calculate_coefficients_ld(df_a_ld_only);
+end;
+
+# ╔═╡ ad8ce6ad-1bf6-4d80-9812-5f9c58f88e47
+begin
+	#filter in only low density
+	df_v_ld_grouped, df_v_md_grouped, df_v_hd_grouped = groupby(df_v, :density)
+	df_v_ld_only = df_v_ld_grouped[!, 8:9]
+
+	#calculate stats
+	co_3_ld, r_squared_3_ld, rms_values_3_ld, pred_3_ld = calculate_coefficients_ld(df_v_ld_only);
+end;
+
+# ╔═╡ 32e06da4-7f66-4aa5-a914-5f40ab7b8e75
+md"""
+## All inserts Plot
+"""
+
+# ╔═╡ 5becfc5a-d6bb-4869-94fe-d7f5ee2d4faa
+md"""
+## Low Density Only Plot
+"""
+
+# ╔═╡ ebd72800-16d2-42fc-9b7d-816efcbb675a
 function accuracy()
 	f = Figure()
 
@@ -135,7 +175,7 @@ function accuracy()
 	f[2, 2] = Legend(f, [sc1, sc2, sc3, ln1, ln2], ["Large Inserts", "Medium Inserts", "Small Inserts", "Unity", "Fitted Line"], framevisible = false)
 
 	
-	for (label, layout) in zip(["A", "B"], [f[1,1], f[2,1]])
+	for (label, layout) in zip(["A", "B","C"], [f[1,1], f[2,1], f[3,1]])
 	    Label(layout[1, 1, TopLeft()], label,
 	        fontsize = 25,
 	        padding = (0, 60, 25, 0),
@@ -149,6 +189,85 @@ end
 # ╔═╡ 190d1636-41ab-4e98-ae6c-5d872a742c0f
 with_theme(medphys_theme) do
     accuracy()
+end
+
+# ╔═╡ 097609df-e2fe-4506-a106-efdebd34b628
+function accuracy_ld()
+	f = Figure()
+
+	##-- A --##
+	ax = Axis(
+		f[1, 1],
+		xticks = [0, 25, 50, 75, 100, 125],
+		yticks = [0, 25, 50, 75, 100, 125],
+		xlabel = "Known Mass (mg)",
+		ylabel = "Calculated Mass (mg)",
+		title = "Material Decomposition Low Density Only",
+	)
+	
+	df = df_m_ld_only
+	sc1=scatter!(df[!, :ground_truth_mass_ld], df[!, :predicted_mass_ld], color=:red)
+	ln1=lines!([-1000, 1000], [-1000, 1000])
+	ln2=lines!(collect(1:1000), pred_1_ld, linestyle=:dashdot)
+	create_textbox(f[1, 1], co_1_ld, r_squared_1_ld, rms_values_1_ld)
+	
+	xlims!(ax, low=0, high=125)
+	ylims!(ax, low=0, high=125)
+
+	##-- B --##
+	ax = Axis(
+		f[2, 1],
+		xticks = [0, 25, 50, 75, 100, 125],
+		yticks = [0, 25, 50, 75, 100, 125],
+		xlabel = "Known Mass (mg)",
+		ylabel = "Calculated Mass (mg)",
+		title = "Agatson Scoring Low Density Only",
+	)
+	
+	df = df_a_ld_only
+	scatter!(df[!, :ground_truth_mass_ld], df[!, :predicted_mass_ld], color=:red)
+	lines!([-1000, 1000], [-1000, 1000],)
+	lines!(collect(1:1000), pred_2_ld, linestyle=:dashdot)
+	create_textbox(f[2, 1], co_2_ld, r_squared_2_ld, rms_values_2_ld)
+	xlims!(ax, low=0, high=125)
+	ylims!(ax, low=0, high=125)
+
+	##-- C --##
+	ax = Axis(
+		f[3, 1],
+		xticks = [0, 25, 50, 75, 100, 125],
+		yticks = [0, 25, 50, 75, 100, 125],
+		xlabel = "Known Mass (mg)",
+		ylabel = "Calculated Mass (mg)",
+		title = "Volume Fraction Low Density Only",
+	)
+	
+	df = df_v_ld_only
+	scatter!(df[!, :ground_truth_mass_ld], df[!, :predicted_mass_ld], color=:red)
+	lines!([-1000, 1000], [-1000, 1000],)
+	lines!(collect(1:1000), pred_3_ld, linestyle=:dashdot)
+	create_textbox(f[3, 1], co_3_ld, r_squared_3_ld, rms_values_3_ld)
+	xlims!(ax, low=0, high=125)
+	ylims!(ax, low=0, high=125)
+
+	#-- LABELS --##
+	f[2, 2] = Legend(f, [sc1, ln1, ln2], ["Low Density", "Unity", "Fitted Line"], framevisible = false)
+
+	
+	for (label, layout) in zip(["A", "B","C"], [f[1,1], f[2,1], f[3,1]])
+	    Label(layout[1, 1, TopLeft()], label,
+	        fontsize = 25,
+	        padding = (0, 60, 25, 0),
+	        halign = :right)
+	end
+	
+	save(plotsdir("linear_reg.png"), f)
+	f
+end
+
+# ╔═╡ 45ae3ede-55ce-44d3-a88f-1e63e2deb164
+with_theme(medphys_theme) do
+    accuracy_ld()
 end
 
 # ╔═╡ 7ffa22cc-8214-4d39-9ff0-20b0b63f06cb
@@ -381,8 +500,15 @@ total_zero_m_pos, total_zero_a_pos
 # ╠═28cfcdf4-abd7-4699-bcf2-7d4af05340e1
 # ╠═684af87a-a9f2-42fd-be26-40a12719bf22
 # ╠═3d5c68d6-9e5c-430d-b17a-552bbd4d254d
-# ╟─fea99e7b-3e03-4b68-a8dd-7532a275fe27
-# ╟─190d1636-41ab-4e98-ae6c-5d872a742c0f
+# ╠═2832bccc-1e27-49da-abd8-f48dfb0a3b4e
+# ╠═91c0608c-9c96-4982-9238-f2aca2ce52f2
+# ╠═ad8ce6ad-1bf6-4d80-9812-5f9c58f88e47
+# ╟─32e06da4-7f66-4aa5-a914-5f40ab7b8e75
+# ╠═190d1636-41ab-4e98-ae6c-5d872a742c0f
+# ╟─5becfc5a-d6bb-4869-94fe-d7f5ee2d4faa
+# ╠═45ae3ede-55ce-44d3-a88f-1e63e2deb164
+# ╟─ebd72800-16d2-42fc-9b7d-816efcbb675a
+# ╟─097609df-e2fe-4506-a106-efdebd34b628
 # ╟─7ffa22cc-8214-4d39-9ff0-20b0b63f06cb
 # ╟─db529cfe-fd35-4a35-b9fd-8367bd7fb6fe
 # ╠═5eb31f2b-bfaa-41d0-9375-9a076ba789d1

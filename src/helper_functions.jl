@@ -30,6 +30,24 @@ function calculate_coefficients(df;
     return coef(model), r_squared, rms_values, pred
 end
 
+function calculate_coefficients_ld(df;  
+    label1=:ground_truth_mass_ld,
+    label2=:predicted_mass_ld
+)
+    gt_array = vec(hcat(df[!, label1]))
+    calc_array = vec(hcat(df[!, label2]))
+    data = DataFrame(X=gt_array, Y=calc_array)
+    model = lm(@formula(Y ~ X), data)
+    r_squared = GLM.r2(model)
+    rms_values = [
+        rms(data[!, :X], data[!, :Y]),
+        rmsd(data[!, :Y], GLM.predict(model))
+    ]
+    pred = GLM.predict(model, DataFrame(X=collect(1:1000)))
+
+    return coef(model), r_squared, rms_values, pred
+end
+
 function overlay_mask_bind(mask)
     indices = findall(x -> x == 1, mask)
     indices = Tuple.(indices)
