@@ -72,6 +72,7 @@ begin
 					array1 = vars1[string("I")]
 					array1 = Int16.(round.(array1))
 					
+					
 					## Path to known DICOM file				
 					dcm_path = datadir("sample.dcm")
 					
