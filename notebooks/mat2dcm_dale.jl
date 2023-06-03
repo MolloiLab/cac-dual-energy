@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.22
+# v0.19.26
 
 using Markdown
 using InteractiveUtils
@@ -22,7 +22,10 @@ using DrWatson
 @quickactivate "cac-dual-energy"
 
 # ╔═╡ 77de3e09-4eb5-47aa-bf5e-8cce0aa1c62b
-using PlutoUI, CairoMakie, MAT, DICOM, DICOMUtils
+using PlutoUI, CairoMakie, MAT, DICOM
+
+# ╔═╡ 2ae5a446-e3fe-431d-a9f7-2b03fc3fb11a
+include(srcdir("dicom_utils.jl"));
 
 # ╔═╡ b71ba9ef-eb74-464a-a8c4-5694deb5d08e
 TableOfContents()
@@ -219,79 +222,11 @@ vol_combined_val = load_dcm_array(dcmdir_combined_val);
 # ╔═╡ edc309c4-4110-477f-b375-07db0170e8a8
 heatmap(transpose(vol_combined_val[:, :, z1]); colormap=:grays)
 
-# ╔═╡ 64b66828-5c52-4ca4-83a0-c31576ab6640
-
-
-# ╔═╡ 449122c6-4c98-466c-b2b9-e46bb4ed8008
-
-
-# ╔═╡ 4e191409-fe21-48bc-94be-2cae0801e22b
-
-
-# ╔═╡ a1c858db-3fa9-4396-9cdb-8201535359fc
-
-
-# ╔═╡ 273487bf-c23b-4189-b5a8-40e803776264
-
-
-# ╔═╡ f3819c17-0ed0-4959-8a49-8955c70b0e27
-
-
-# ╔═╡ 2ff26faa-952c-42a6-987b-d2f4dd4aaefc
-
-
-# ╔═╡ f494b71d-b9e1-4c06-aa04-63dcfb54bf10
-
-
-# ╔═╡ c848d820-591d-489d-b637-a8326091d5ca
-
-
-# ╔═╡ c6591263-b699-4721-8ce3-dab1a85e2b0b
-
-
-# ╔═╡ c650f239-04cd-454c-bd4e-42b5ed5d4961
-
-
-# ╔═╡ d38c305c-9aa2-48fb-98e6-80fe213a2528
-
-
-# ╔═╡ 9ca4c857-5a33-40fc-bdb8-fbfe01491116
-
-
-# ╔═╡ 21189994-8e23-44a3-946c-20ed7d9b0935
-
-
-# ╔═╡ d4fe0b4b-b56e-4f42-bcde-e4a99ad24a0d
-
-
-# ╔═╡ d8239cf3-dee5-45a6-b5aa-0067e4ee5c69
-
-
-# ╔═╡ 2d9196eb-44c8-4924-9bed-5a641e178838
-
-
-# ╔═╡ 2e7f7026-8461-4aae-aa9a-ae42d33e65a3
-
-
-# ╔═╡ 8264130d-7052-4035-99a4-b895fa3edfdc
-
-
-# ╔═╡ b8641ea0-365e-49ba-867c-24683a27df21
-
-
-# ╔═╡ 52f553b5-d788-4bc3-89dd-37214232b423
-
-
-# ╔═╡ 7a747d3c-9f75-4815-a12c-1cb2b43fd67e
-
-
-# ╔═╡ 8e61c2c6-6e09-4b1f-98d6-084cbde9d20d
-
-
 # ╔═╡ Cell order:
 # ╠═bc7570e3-19c1-401e-95c5-9be6ac01a648
 # ╠═1649be2d-a180-4bb2-b3a1-3e1dce110e75
 # ╠═77de3e09-4eb5-47aa-bf5e-8cce0aa1c62b
+# ╠═2ae5a446-e3fe-431d-a9f7-2b03fc3fb11a
 # ╠═b71ba9ef-eb74-464a-a8c4-5694deb5d08e
 # ╟─89dba7f9-dfdf-4702-8173-fa94d23745cb
 # ╠═8076fcea-def3-4bd5-b7fe-040a81280543
@@ -310,31 +245,8 @@ heatmap(transpose(vol_combined_val[:, :, z1]); colormap=:grays)
 # ╠═5ecbc232-7733-4f1c-a8d6-c0821badaf06
 # ╠═e10c7eea-dfcf-4269-976e-b2765a5713ec
 # ╠═40d56172-80af-4d7a-91f7-63bb3acf6a45
-# ╠═198cfcd1-e23a-4e58-a074-a9381f66d34b
+# ╟─198cfcd1-e23a-4e58-a074-a9381f66d34b
 # ╠═4f045d3d-d06b-424c-b0bf-332983c57c7c
 # ╠═38323073-5134-47d4-a6a5-eb11729d7e51
-# ╠═592521e1-ce60-404f-a8e3-0dd2b958030c
-# ╠═edc309c4-4110-477f-b375-07db0170e8a8
-# ╠═64b66828-5c52-4ca4-83a0-c31576ab6640
-# ╠═449122c6-4c98-466c-b2b9-e46bb4ed8008
-# ╠═4e191409-fe21-48bc-94be-2cae0801e22b
-# ╠═a1c858db-3fa9-4396-9cdb-8201535359fc
-# ╠═273487bf-c23b-4189-b5a8-40e803776264
-# ╠═f3819c17-0ed0-4959-8a49-8955c70b0e27
-# ╠═2ff26faa-952c-42a6-987b-d2f4dd4aaefc
-# ╠═f494b71d-b9e1-4c06-aa04-63dcfb54bf10
-# ╠═c848d820-591d-489d-b637-a8326091d5ca
-# ╠═c6591263-b699-4721-8ce3-dab1a85e2b0b
-# ╠═c650f239-04cd-454c-bd4e-42b5ed5d4961
-# ╠═d38c305c-9aa2-48fb-98e6-80fe213a2528
-# ╠═9ca4c857-5a33-40fc-bdb8-fbfe01491116
-# ╠═21189994-8e23-44a3-946c-20ed7d9b0935
-# ╠═d4fe0b4b-b56e-4f42-bcde-e4a99ad24a0d
-# ╠═d8239cf3-dee5-45a6-b5aa-0067e4ee5c69
-# ╠═2d9196eb-44c8-4924-9bed-5a641e178838
-# ╠═2e7f7026-8461-4aae-aa9a-ae42d33e65a3
-# ╠═8264130d-7052-4035-99a4-b895fa3edfdc
-# ╠═b8641ea0-365e-49ba-867c-24683a27df21
-# ╠═52f553b5-d788-4bc3-89dd-37214232b423
-# ╠═7a747d3c-9f75-4815-a12c-1cb2b43fd67e
-# ╠═8e61c2c6-6e09-4b1f-98d6-084cbde9d20d
+# ╟─592521e1-ce60-404f-a8e3-0dd2b958030c
+# ╟─edc309c4-4110-477f-b375-07db0170e8a8
