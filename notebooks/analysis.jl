@@ -352,7 +352,7 @@ function sensitivity_specificity()
 	        halign = :right)
 	end
 
-	save(plotsdir("sensitivity_specificity.eps"), f)
+	save(plotsdir("sensitivity_specificity.png"), f)
 
     return f
 end
