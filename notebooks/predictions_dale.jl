@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.22
+# v0.19.26
 
 using Markdown
 using InteractiveUtils
@@ -19,10 +19,10 @@ using StatsBase: quantile!, rmsd
 
 # ╔═╡ 68ec4904-d908-4c1e-98e1-00ec7ba06f59
 # ╠═╡ show_logs = false
-using DICOMUtils, CalciumScoring
+using CalciumScoring
 
 # ╔═╡ 29f9cf29-9437-42a6-8dab-89105273c187
-include(srcdir("masks.jl"))
+include(srcdir("masks.jl")); include(srcdir("dicom_utils.jl"));
 
 # ╔═╡ 1b568480-5467-4ffd-9099-de81066e407e
 TableOfContents()
@@ -271,7 +271,7 @@ begin
 			path_80 = datadir("data_new","dcms", "val", density, _size, string(energies[1]))
 			dcm_80 = dcmdir_parse(path_80)
 			dcm_array_80 = load_dcm_array(dcm_80)
-			pixel_size = DICOMUtils.get_pixel_size(dcm_80[1].meta)
+			pixel_size = get_pixel_size(dcm_80[1].meta)
 			
 			means_80 = [
 				mean(dcm_array_80[dilated_mask_L_HD_3D]), mean(dcm_array_80[dilated_mask_L_MD_3D]), mean(dcm_array_80[dilated_mask_L_LD_3D]),
@@ -309,9 +309,9 @@ begin
 
 			# Calculate ground truth mass 
 			# π * radius_mm^2 * slice_thickness_mm * number of slices
-			vol_small_insert_gt = π * (1/2)^2 * (3 * 3) # mm^3
-			vol_medium_insert_gt = π * (3/2)^2 * (3 * 3) # mm^3
-			vol_large_insert_gt = π * (5/2)^2 * (3 * 3) # mm^3
+			vol_small_insert_gt = π * (1/2)^2 * (pixel_size[3] * 3) # mm^3
+			vol_medium_insert_gt = π * (3/2)^2 * (pixel_size[3] * 3) # mm^3
+			vol_large_insert_gt = π * (5/2)^2 * (pixel_size[3] * 3) # mm^3
 			
 			volumes_inserts_mm3 = [vol_small_insert_gt, vol_medium_insert_gt, 
 			vol_large_insert_gt] # mm^3

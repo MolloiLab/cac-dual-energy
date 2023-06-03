@@ -57,6 +57,7 @@ for density in densities_cal
 			dcm_path = datadir("sample.dcm")
 			dcm = dcm_parse(dcm_path)
 			dcm[tag"Pixel Data"] = img1
+			dcm[tag"Slice Thickness"] = 0.5
 			dcm[tag"Instance Number"] = 1
 			dcm[tag"Rows"] = size(img1, 1)
 			dcm[tag"Columns"] = size(img1, 2)
@@ -78,6 +79,7 @@ for density in densities_cal
 			dcm_path = datadir("sample.dcm")
 			dcm = dcm_parse(dcm_path)
 			dcm[tag"Pixel Data"] = img2
+			dcm[tag"Slice Thickness"] = 0.5
 			dcm[tag"Instance Number"] = 2
 			dcm[tag"Rows"] = size(img2, 1)
 			dcm[tag"Columns"] = size(img2, 2)
@@ -94,6 +96,7 @@ for density in densities_cal
 			dcm_path = datadir("sample.dcm")
 			dcm = dcm_parse(dcm_path)
 			dcm[tag"Pixel Data"] = img3
+			dcm[tag"Slice Thickness"] = 0.5
 			dcm[tag"Instance Number"] = 2
 			dcm[tag"Rows"] = size(img3, 1)
 			dcm[tag"Columns"] = size(img3, 2)
