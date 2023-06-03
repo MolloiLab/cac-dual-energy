@@ -1,21 +1,21 @@
 ### A Pluto.jl notebook ###
-# v0.19.22
+# v0.19.26
 
 using Markdown
 using InteractiveUtils
 
-# ╔═╡ 321db384-5cbe-49b5-bf1e-80cc1a603699
-# ╠═╡ show_logs = false
-begin
-	using DrWatson
-	@quickactivate "cac-dual-energy"
-end
+# ╔═╡ a746ff38-1cde-4853-b001-7f2dfd6a693c
+using DrWatson
 
-# ╔═╡ 68b40210-7a3c-403e-a206-bcea384a7d27
-begin
-	using PlutoUI, Statistics, CSV, DataFrames, CairoMakie, Colors, GLM, MLJBase, Printf
-	using StatsBase: quantile!, rmsd
-end
+# ╔═╡ 7cad0e61-2cde-44ef-903a-531f10b322f5
+# ╠═╡ show_logs = false
+@quickactivate "cac-dual-energy"
+
+# ╔═╡ b169b3f6-819c-4f29-b32d-d5b28b9ae85f
+using PlutoUI, Statistics, CSV, DataFrames, CairoMakie, Colors, GLM, MLJBase, Printf
+
+# ╔═╡ 4ed99e12-126a-4728-a700-6942c678b403
+using StatsBase: quantile!, rmsd
 
 # ╔═╡ debe4f43-1698-461d-95c6-17f6052eee36
 include(srcdir("plot_utils.jl")); include(srcdir("helper_functions.jl")); 
@@ -66,46 +66,6 @@ co_2, r_squared_2, rms_values_2, pred_2 = calculate_coefficients(df_a);
 
 # ╔═╡ 3d5c68d6-9e5c-430d-b17a-552bbd4d254d
 co_3, r_squared_3, rms_values_3, pred_3 = calculate_coefficients(df_v);
-
-# ╔═╡ 2832bccc-1e27-49da-abd8-f48dfb0a3b4e
-begin
-	#filter in only low density
-	df_m_ld_grouped, df_m_md_grouped, df_m_hd_grouped = groupby(df_m, :density)
-	df_m_ld_only = df_m_ld_grouped[!, 8:9]
-
-	#calculate stats
-	co_1_ld, r_squared_1_ld, rms_values_1_ld, pred_1_ld = calculate_coefficients_ld(df_m_ld_only);
-end;
-
-# ╔═╡ 91c0608c-9c96-4982-9238-f2aca2ce52f2
-begin
-	#filter in only low density
-	df_a_ld_grouped, df_a_md_grouped, df_a_hd_grouped = groupby(df_a, :density)
-	df_a_ld_only = df_a_ld_grouped[!, 11:12]
-	
-	#calculate stats
-	co_2_ld, r_squared_2_ld, rms_values_2_ld, pred_2_ld = calculate_coefficients_ld(df_a_ld_only);
-end;
-
-# ╔═╡ ad8ce6ad-1bf6-4d80-9812-5f9c58f88e47
-begin
-	#filter in only low density
-	df_v_ld_grouped, df_v_md_grouped, df_v_hd_grouped = groupby(df_v, :density)
-	df_v_ld_only = df_v_ld_grouped[!, 8:9]
-
-	#calculate stats
-	co_3_ld, r_squared_3_ld, rms_values_3_ld, pred_3_ld = calculate_coefficients_ld(df_v_ld_only);
-end;
-
-# ╔═╡ 32e06da4-7f66-4aa5-a914-5f40ab7b8e75
-md"""
-## All inserts Plot
-"""
-
-# ╔═╡ 5becfc5a-d6bb-4869-94fe-d7f5ee2d4faa
-md"""
-## Low Density Only Plot
-"""
 
 # ╔═╡ ebd72800-16d2-42fc-9b7d-816efcbb675a
 function accuracy()
@@ -187,88 +147,7 @@ function accuracy()
 end
 
 # ╔═╡ 190d1636-41ab-4e98-ae6c-5d872a742c0f
-with_theme(medphys_theme) do
-    accuracy()
-end
-
-# ╔═╡ 097609df-e2fe-4506-a106-efdebd34b628
-function accuracy_ld()
-	f = Figure()
-
-	##-- A --##
-	ax = Axis(
-		f[1, 1],
-		xticks = [0, 25, 50, 75, 100, 125],
-		yticks = [0, 25, 50, 75, 100, 125],
-		xlabel = "Known Mass (mg)",
-		ylabel = "Calculated Mass (mg)",
-		title = "Material Decomposition Low Density Only",
-	)
-	
-	df = df_m_ld_only
-	sc1=scatter!(df[!, :ground_truth_mass_ld], df[!, :predicted_mass_ld], color=:red)
-	ln1=lines!([-1000, 1000], [-1000, 1000])
-	ln2=lines!(collect(1:1000), pred_1_ld, linestyle=:dashdot)
-	create_textbox(f[1, 1], co_1_ld, r_squared_1_ld, rms_values_1_ld)
-	
-	xlims!(ax, low=0, high=125)
-	ylims!(ax, low=0, high=125)
-
-	##-- B --##
-	ax = Axis(
-		f[2, 1],
-		xticks = [0, 25, 50, 75, 100, 125],
-		yticks = [0, 25, 50, 75, 100, 125],
-		xlabel = "Known Mass (mg)",
-		ylabel = "Calculated Mass (mg)",
-		title = "Agatson Scoring Low Density Only",
-	)
-	
-	df = df_a_ld_only
-	scatter!(df[!, :ground_truth_mass_ld], df[!, :predicted_mass_ld], color=:red)
-	lines!([-1000, 1000], [-1000, 1000],)
-	lines!(collect(1:1000), pred_2_ld, linestyle=:dashdot)
-	create_textbox(f[2, 1], co_2_ld, r_squared_2_ld, rms_values_2_ld)
-	xlims!(ax, low=0, high=125)
-	ylims!(ax, low=0, high=125)
-
-	##-- C --##
-	ax = Axis(
-		f[3, 1],
-		xticks = [0, 25, 50, 75, 100, 125],
-		yticks = [0, 25, 50, 75, 100, 125],
-		xlabel = "Known Mass (mg)",
-		ylabel = "Calculated Mass (mg)",
-		title = "Volume Fraction Low Density Only",
-	)
-	
-	df = df_v_ld_only
-	scatter!(df[!, :ground_truth_mass_ld], df[!, :predicted_mass_ld], color=:red)
-	lines!([-1000, 1000], [-1000, 1000],)
-	lines!(collect(1:1000), pred_3_ld, linestyle=:dashdot)
-	create_textbox(f[3, 1], co_3_ld, r_squared_3_ld, rms_values_3_ld)
-	xlims!(ax, low=0, high=125)
-	ylims!(ax, low=0, high=125)
-
-	#-- LABELS --##
-	f[2, 2] = Legend(f, [sc1, ln1, ln2], ["Low Density", "Unity", "Fitted Line"], framevisible = false)
-
-	
-	for (label, layout) in zip(["A", "B","C"], [f[1,1], f[2,1], f[3,1]])
-	    Label(layout[1, 1, TopLeft()], label,
-	        fontsize = 25,
-	        padding = (0, 60, 25, 0),
-	        halign = :right)
-	end
-	
-	save(plotsdir("linear_reg.png"), f)
-	f
-end
-
-# ╔═╡ 45ae3ede-55ce-44d3-a88f-1e63e2deb164
-with_theme(medphys_theme) do
-    accuracy_ld()
-end
+with_theme(accuracy, medphys_theme)
 
 # ╔═╡ 7ffa22cc-8214-4d39-9ff0-20b0b63f06cb
 md"""
@@ -479,16 +358,16 @@ function sensitivity_specificity()
 end
 
 # ╔═╡ d8a3e7f0-65d8-47d7-885a-f3fa6ba63739
-with_theme(medphys_theme) do
-    sensitivity_specificity()
-end
+with_theme(sensitivity_specificity, medphys_theme)
 
 # ╔═╡ 07bab099-72e6-4315-aeac-ee7acc73f3dc
 total_zero_m_pos, total_zero_a_pos
 
 # ╔═╡ Cell order:
-# ╠═321db384-5cbe-49b5-bf1e-80cc1a603699
-# ╠═68b40210-7a3c-403e-a206-bcea384a7d27
+# ╠═a746ff38-1cde-4853-b001-7f2dfd6a693c
+# ╠═7cad0e61-2cde-44ef-903a-531f10b322f5
+# ╠═b169b3f6-819c-4f29-b32d-d5b28b9ae85f
+# ╠═4ed99e12-126a-4728-a700-6942c678b403
 # ╠═debe4f43-1698-461d-95c6-17f6052eee36
 # ╠═7f4c4f06-9875-4fc5-bf0a-77fe243067ec
 # ╠═7a4b45d8-2fbd-41d1-9df6-c31d15361327
@@ -500,15 +379,8 @@ total_zero_m_pos, total_zero_a_pos
 # ╠═28cfcdf4-abd7-4699-bcf2-7d4af05340e1
 # ╠═684af87a-a9f2-42fd-be26-40a12719bf22
 # ╠═3d5c68d6-9e5c-430d-b17a-552bbd4d254d
-# ╠═2832bccc-1e27-49da-abd8-f48dfb0a3b4e
-# ╠═91c0608c-9c96-4982-9238-f2aca2ce52f2
-# ╠═ad8ce6ad-1bf6-4d80-9812-5f9c58f88e47
-# ╟─32e06da4-7f66-4aa5-a914-5f40ab7b8e75
-# ╠═190d1636-41ab-4e98-ae6c-5d872a742c0f
-# ╟─5becfc5a-d6bb-4869-94fe-d7f5ee2d4faa
-# ╠═45ae3ede-55ce-44d3-a88f-1e63e2deb164
+# ╟─190d1636-41ab-4e98-ae6c-5d872a742c0f
 # ╟─ebd72800-16d2-42fc-9b7d-816efcbb675a
-# ╟─097609df-e2fe-4506-a106-efdebd34b628
 # ╟─7ffa22cc-8214-4d39-9ff0-20b0b63f06cb
 # ╟─db529cfe-fd35-4a35-b9fd-8367bd7fb6fe
 # ╠═5eb31f2b-bfaa-41d0-9375-9a076ba789d1
