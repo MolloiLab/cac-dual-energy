@@ -282,8 +282,8 @@ dfs
 # ╔═╡ 1172b423-4d84-442b-93af-4c73087f0a29
 begin
     new_df = vcat(dfs[1:length(dfs)]...)
-    output_path = string(datadir("results"),"masses.csv")
-	save(output_path,new_df)
+    output_path = datadir("results", "masses.csv")
+	save(output_path, new_df)
 end
 
 # ╔═╡ Cell order:
