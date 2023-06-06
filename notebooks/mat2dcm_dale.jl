@@ -49,7 +49,7 @@ for density in densities_cal
 	for energy in energies_cal
 		for _size in sizes_cal
 			# Convert first slice into dcm
-			path1 = joinpath(datadir("data_new", "mats", "cal"), string(density, "rod", energy, "kV", _size, "_1.mat"))
+			path1 = joinpath(datadir("mats", "cal"), string(density, "rod", energy, "kV", _size, "_1.mat"))
 			var1 = matread(path1)
 			img1 = var1[string("I")]
 			img1 = Int16.(round.(img1))
@@ -62,7 +62,7 @@ for density in densities_cal
 			dcm[tag"Rows"] = size(img1, 1)
 			dcm[tag"Columns"] = size(img1, 2)
 
-			output_dir = joinpath(datadir("data_new", "dcms", "cal"), string(density), string(_size), string(energy))
+			output_dir = joinpath(datadir("dcms", "cal"), string(density), string(_size), string(energy))
 			if !isdir(output_dir)
 				mkpath(output_dir)
 			end
@@ -71,7 +71,7 @@ for density in densities_cal
 			dcm_write(output_path1, dcm)
 
 			# Convert second slice into dcm
-			path2 = joinpath(datadir("data_new", "mats", "cal"), string(density, "rod", energy, "kV", _size, "_2.mat"))
+			path2 = joinpath(datadir("mats", "cal"), string(density, "rod", energy, "kV", _size, "_2.mat"))
 			var2 = matread(path2)
 			img2 = var2[string("I")]
 			img2 = Int16.(round.(img2))
@@ -88,7 +88,7 @@ for density in densities_cal
 			dcm_write(output_path2, dcm)
 
 			# Convert third slice into dcm
-			path3 = joinpath(datadir("data_new", "mats", "cal"), string(density, "rod", energy, "kV", _size, "_3.mat"))
+			path3 = joinpath(datadir("mats", "cal"), string(density, "rod", energy, "kV", _size, "_3.mat"))
 			var3 = matread(path3)
 			img3 = var3[string("I")]
 			img3 = Int16.(round.(img3))
@@ -121,8 +121,19 @@ vol_combined = load_dcm_array(dcmdir_combined);
 # ╔═╡ 1d144df8-05e4-4be3-975f-c43d6491ef7b
 @bind z PlutoUI.Slider(1:size(vol_combined, 3); default=1, show_value=true)
 
+# ╔═╡ 5c43c674-ce19-4eb7-b7f8-c8b6b214f06a
+x, y = 187, 260
+
 # ╔═╡ 3aa05603-f0af-4325-b7fd-5c7a9a7888ff
-heatmap(transpose(vol_combined[:, :, z]); colormap=:grays)
+let
+	f = Figure()
+	ax = CairoMakie.Axis(
+		f[1, 1]
+	)
+	heatmap!(transpose(vol_combined[:, :, z]); colormap=:grays)
+	scatter!(y, x; markersize = 10, color = :red)
+	f
+end
 
 # ╔═╡ af5489bd-febc-4e23-a113-291fba99e9ca
 md"""
@@ -138,12 +149,6 @@ densities_val = [
 	"410_610_780"
 ] # percentage water
 
-# ╔═╡ 127f21c6-ca1d-420b-8b3e-fd74e23caa3f
-
-
-# ╔═╡ dd7a5890-12ef-4c16-8060-a011ac9e12cd
-
-
 # ╔═╡ 5ecbc232-7733-4f1c-a8d6-c0821badaf06
 energies_val = [80, 135]
 
@@ -155,7 +160,7 @@ for (i, density) in enumerate(densities_val)
 	for energy in energies_val
 		for _size in sizes_val
 			# Convert first slice into dcm
-			path1 = joinpath(datadir("data_new", "mats", "val"), string(density, "energy", energy, _size, "_1.mat"))
+			path1 = joinpath(datadir("mats", "val"), string(density, "energy", energy, _size, "_1.mat"))
 			var1 = matread(path1)
 			img1 = var1[string("I")]
 			img1 = Int16.(round.(img1))
@@ -167,7 +172,7 @@ for (i, density) in enumerate(densities_val)
 			dcm[tag"Rows"] = size(img1, 1)
 			dcm[tag"Columns"] = size(img1, 2)
 
-			output_dir = joinpath(datadir("data_new", "dcms", "val"), string(density), string(_size), string(energy))
+			output_dir = joinpath(datadir("dcms", "val"), string(density), string(_size), string(energy))
 			if !isdir(output_dir)
 				mkpath(output_dir)
 			end
@@ -176,7 +181,7 @@ for (i, density) in enumerate(densities_val)
 			dcm_write(output_path1, dcm)
 
 			# Convert second slice into dcm
-			path2 = joinpath(datadir("data_new", "mats", "val"), string(density, "energy", energy, _size, "_2.mat"))
+			path2 = joinpath(datadir("mats", "val"), string(density, "energy", energy, _size, "_2.mat"))
 			var2 = matread(path2)
 			img2 = var2[string("I")]
 			img2 = Int16.(round.(img2))
@@ -192,7 +197,7 @@ for (i, density) in enumerate(densities_val)
 			dcm_write(output_path2, dcm)
 
 			# Convert second slice into dcm
-			path3 = joinpath(datadir("data_new", "mats", "val"), string(density, "energy", energy, _size, "_3.mat"))
+			path3 = joinpath(datadir("mats", "val"), string(density, "energy", energy, _size, "_3.mat"))
 			var3 = matread(path3)
 			img3 = var3[string("I")]
 			img3 = Int16.(round.(img3))
@@ -242,11 +247,10 @@ heatmap(transpose(vol_combined_val[:, :, z1]); colormap=:grays)
 # ╠═a2fdd6ec-f55e-49ab-9c7c-81ef411b3fe3
 # ╠═0cc8d2cb-a2bc-4782-8c49-492a24f7f46f
 # ╟─1d144df8-05e4-4be3-975f-c43d6491ef7b
+# ╠═5c43c674-ce19-4eb7-b7f8-c8b6b214f06a
 # ╠═3aa05603-f0af-4325-b7fd-5c7a9a7888ff
 # ╟─af5489bd-febc-4e23-a113-291fba99e9ca
 # ╠═e9c7a7af-f24c-47b2-be7f-198c5992a47d
-# ╠═127f21c6-ca1d-420b-8b3e-fd74e23caa3f
-# ╠═dd7a5890-12ef-4c16-8060-a011ac9e12cd
 # ╠═5ecbc232-7733-4f1c-a8d6-c0821badaf06
 # ╠═e10c7eea-dfcf-4269-976e-b2765a5713ec
 # ╠═40d56172-80af-4d7a-91f7-63bb3acf6a45

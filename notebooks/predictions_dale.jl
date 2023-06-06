@@ -34,6 +34,7 @@ md"""
 
 # ╔═╡ 668d1999-ce4e-4510-9dd4-84a26ab26dcf
 begin
+	# densities_cal = [0, 10, 16, 25, 45, 50, 75, 100, 200, 300, 400, 500, 600, 800]
 	densities_cal = [10, 16, 25, 45, 50, 75, 100, 200, 300, 400, 500, 600, 800]
 	sizes_cal = [30]
 	energies = [80, 135]
@@ -45,22 +46,66 @@ md"""
 """
 
 # ╔═╡ 73ab1438-d7b2-483a-a69b-2cb2d942a2fa
+# begin
+# 	means_80 = Dict(:density => densities_cal, :means => zeros(length(densities_cal)))
+# 	for (i, density) in enumerate(densities_cal)
+# 		if density == densities_cal[1]
+# 			path = joinpath(datadir("dcms", "cal"), "10", "30", string(energies[1]))
+# 			dcm = dcmdir_parse(path)
+# 			dcm_array = load_dcm_array(dcm)
+# 			x, y = 187, 260
+# 			offset = 5
+# 			calibration_rod = zeros(offset*2 + 1, offset*2 + 1, size(dcm_array, 3))
+			
+# 			for z in axes(dcm_array, 3)
+# 				rows, cols, depth = size(dcm_array)
+# 				half_row, half_col = x, y
+# 				row_range = half_row-offset:half_row+offset
+# 				col_range = half_col-offset:half_col+offset	
+# 				calibration_rod[:, :, z] .= dcm_array[row_range, col_range, z];
+# 			end
+		
+# 			means_80[:means][i] = mean(calibration_rod)
+# 		else
+# 			for _size in sizes_cal
+# 				path = joinpath(datadir("dcms", "cal"), string(density), string(_size), string(energies[1]))
+# 				dcm = dcmdir_parse(path)
+# 				dcm_array = load_dcm_array(dcm)
+			
+# 				center_insert1, center_insert2 = 187, 318
+# 				offset = 5
+# 				calibration_rod = zeros(offset*2 + 1, offset*2 + 1, size(dcm_array, 3))
+				
+# 				for z in axes(dcm_array, 3)
+# 					rows, cols, depth = size(dcm_array)
+# 					half_row, half_col = center_insert1, center_insert2
+# 					row_range = half_row-offset:half_row+offset
+# 					col_range = half_col-offset:half_col+offset	
+# 					calibration_rod[:, :, z] .= dcm_array[row_range, col_range, z];
+# 				end
+			
+# 				means_80[:means][i] = mean(calibration_rod)
+# 			end
+# 		end
+# 	end
+# end
+
+# ╔═╡ c30d5213-abcc-482d-887a-a63b54eed243
 begin
 	means_80 = Dict(:density => densities_cal, :means => zeros(length(densities_cal)))
 	for (i, density) in enumerate(densities_cal)
 		for _size in sizes_cal
-			path = joinpath(datadir("data_new","dcms", "cal"), string(density), string(_size), string(energies[1]))
+			path = joinpath(datadir("dcms", "cal"), string(density), string(_size), string(energies[1]))
 			dcm = dcmdir_parse(path)
 			dcm_array = load_dcm_array(dcm)
 		
 			center_insert1, center_insert2 = 187, 318
-			
-			calibration_rod = zeros(25, 25, size(dcm_array, 3))
+			offset = 5
+			calibration_rod = zeros(offset*2 + 1, offset*2 + 1, size(dcm_array, 3))
 			
 			for z in axes(dcm_array, 3)
 				rows, cols, depth = size(dcm_array)
 				half_row, half_col = center_insert1, center_insert2
-				offset = 12
 				row_range = half_row-offset:half_row+offset
 				col_range = half_col-offset:half_col+offset	
 				calibration_rod[:, :, z] .= dcm_array[row_range, col_range, z];
@@ -77,22 +122,69 @@ md"""
 """
 
 # ╔═╡ 4a8cfe9e-6b9a-4645-9f6d-13afa87d8213
+# begin
+# 	means_135 = Dict(:density => densities_cal, :means => zeros(length(densities_cal)))
+# 	for (i, density) in enumerate(densities_cal)
+# 		if density == densities_cal[1]
+# 			path = joinpath(datadir("dcms", "cal"), "10", "30", string(energies[2]))
+# 			dcm = dcmdir_parse(path)
+# 			dcm_array = load_dcm_array(dcm)
+# 			x, y = 187, 260
+# 			offset = 5
+# 			calibration_rod = zeros(offset*2 + 1, offset*2 + 1, size(dcm_array, 3))
+			
+# 			for z in axes(dcm_array, 3)
+# 				rows, cols, depth = size(dcm_array)
+# 				half_row, half_col = x, y
+				
+# 				row_range = half_row-offset:half_row+offset
+# 				col_range = half_col-offset:half_col+offset	
+# 				calibration_rod[:, :, z] .= dcm_array[row_range, col_range, z];
+# 			end
+		
+# 			means_135[:means][i] = mean(calibration_rod)
+# 		else
+# 			for _size in sizes_cal
+# 				path = joinpath(datadir("dcms", "cal"), string(density), string(_size), string(energies[2]))
+# 				dcm = dcmdir_parse(path)
+# 				dcm_array = load_dcm_array(dcm)
+			
+# 				center_insert1, center_insert2 = 187, 318
+				
+# 				offset = 5
+# 				calibration_rod = zeros(offset*2 + 1, offset*2 + 1, size(dcm_array, 3))
+				
+# 				for z in axes(dcm_array, 3)
+# 					rows, cols, depth = size(dcm_array)
+# 					half_row, half_col = center_insert1, center_insert2
+# 					row_range = half_row-offset:half_row+offset
+# 					col_range = half_col-offset:half_col+offset	
+# 					calibration_rod[:, :, z] .= dcm_array[row_range, col_range, z];
+# 				end
+			
+# 				means_135[:means][i] = mean(calibration_rod)
+# 			end
+# 		end
+# 	end
+# end
+
+# ╔═╡ 84ab3b1d-cd05-43b1-b889-fdcf94529023
 begin
 	means_135 = Dict(:density => densities_cal, :means => zeros(length(densities_cal)))
 	for (i, density) in enumerate(densities_cal)
 		for _size in sizes_cal
-			path = joinpath(datadir("data_new","dcms", "cal"), string(density), string(_size), string(energies[2]))
+			path = joinpath(datadir("dcms", "cal"), string(density), string(_size), string(energies[2]))
 			dcm = dcmdir_parse(path)
 			dcm_array = load_dcm_array(dcm)
 		
 			center_insert1, center_insert2 = 187, 318
 			
-			calibration_rod = zeros(25, 25, size(dcm_array, 3))
+			offset = 5
+			calibration_rod = zeros(offset*2 + 1, offset*2 + 1, size(dcm_array, 3))
 			
 			for z in axes(dcm_array, 3)
 				rows, cols, depth = size(dcm_array)
 				half_row, half_col = center_insert1, center_insert2
-				offset = 12
 				row_range = half_row-offset:half_row+offset
 				col_range = half_col-offset:half_col+offset	
 				calibration_rod[:, :, z] .= dcm_array[row_range, col_range, z];
@@ -270,7 +362,7 @@ begin
 			dilated_mask_S_LD_3D = cat(dilated_mask_S_LD, dilated_mask_S_LD, dilated_mask_S_LD, dims=3)
 
 			# Low Energy
-			path_80 = datadir("data_new","dcms", "val", density, _size, string(energies[1]))
+			path_80 = datadir("dcms", "val", density, _size, string(energies[1]))
 			dcm_80 = dcmdir_parse(path_80)
 			dcm_array_80 = load_dcm_array(dcm_80)
 			pixel_size = get_pixel_size(dcm_80[1].meta)
@@ -282,7 +374,7 @@ begin
 			]
 
 			# High Energy
-			path_135 = datadir("data_new","dcms", "val", density, _size, string(energies[2]))
+			path_135 = datadir("dcms", "val", density, _size, string(energies[2]))
 			dcm_135 = dcmdir_parse(path_135)
 			dcm_array_135 = load_dcm_array(dcm_135)
 			
@@ -354,8 +446,10 @@ dfs
 # ╠═668d1999-ce4e-4510-9dd4-84a26ab26dcf
 # ╟─ee95b544-2e02-4de3-bd1c-019d8fc3cdd6
 # ╠═73ab1438-d7b2-483a-a69b-2cb2d942a2fa
+# ╠═c30d5213-abcc-482d-887a-a63b54eed243
 # ╟─37181932-1398-4c45-9ff0-fb8d488ab562
 # ╠═4a8cfe9e-6b9a-4645-9f6d-13afa87d8213
+# ╠═84ab3b1d-cd05-43b1-b889-fdcf94529023
 # ╟─6760a907-7817-4692-abd3-2c1b66dc3a50
 # ╠═727de9ea-d78c-4c5f-9223-351a2fac45e3
 # ╠═38910d55-20d0-445e-98ea-c2f36aaa5255
