@@ -1,3 +1,5 @@
+using GLM, MLJBase
+
 function collect_tuple(tuple_array)
     row_num = size(tuple_array)
     col_num = length(tuple_array[1])
@@ -9,12 +11,12 @@ function collect_tuple(tuple_array)
 end
 
 function calculate_coefficients(df;
-    label1=:ground_truth_mass_hd,
-    label2=:ground_truth_mass_md,
-    label3=:ground_truth_mass_ld,
-    label4=:predicted_mass_hd,
-    label5=:predicted_mass_md,
-    label6=:predicted_mass_ld
+    label1=:gt_mass_large_inserts,
+    label2=:gt_mass_medium_inserts,
+    label3=:gt_mass_small_inserts,
+    label4=:predicted_mass_large_inserts,
+    label5=:predicted_mass_medium_inserts,
+    label6=:predicted_mass_small_inserts
 )
     gt_array = vec(hcat(df[!, label1], df[!, label2], df[!, label3]))
     calc_array = vec(hcat(df[!, label4], df[!, label5], df[!, label6]))
