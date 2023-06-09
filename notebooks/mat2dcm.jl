@@ -22,6 +22,7 @@ using DrWatson
 @quickactivate "cac-dual-energy"
 
 # ╔═╡ 77de3e09-4eb5-47aa-bf5e-8cce0aa1c62b
+# ╠═╡ show_logs = false
 using PlutoUI, CairoMakie, MAT, DICOM
 
 # ╔═╡ 2ae5a446-e3fe-431d-a9f7-2b03fc3fb11a
