@@ -150,7 +150,7 @@ densities_val = [
 ] # percentage water
 
 # ╔═╡ 5ecbc232-7733-4f1c-a8d6-c0821badaf06
-energies_val = [80, 135]
+energies_val = [80, 120, 135]
 
 # ╔═╡ e10c7eea-dfcf-4269-976e-b2765a5713ec
 sizes_val = ["small", "medium", "large"]

@@ -41,6 +41,40 @@ md"""
 # Low Density
 """
 
+# ╔═╡ 668d1999-ce4e-4510-9dd4-84a26ab26dcf
+begin
+	sizes_cal = [30]
+	energies = [80, 120, 135]
+end;
+
+# ╔═╡ 66025838-3122-4316-ba66-35b89e9d510c
+md"""
+## Volume Fraction & Agatston Calibration
+"""
+
+# ╔═╡ 00e313f8-1f2f-4e16-ae14-85c1f082c843
+path = joinpath(datadir("dcms", "cal", "100", "30"), string(energies[2]))
+
+# ╔═╡ 17ced35c-de57-4633-be0f-754ccfbfe180
+begin
+	dcm = dcmdir_parse(path)
+	dcm_array = load_dcm_array(dcm)
+
+	center_insert1, center_insert2 = 187, 318
+	offset = 5
+	calibration_rod = zeros(offset*2 + 1, offset*2 + 1, size(dcm_array, 3))
+	
+	for z in axes(dcm_array, 3)
+		rows, cols, depth = size(dcm_array)
+		half_row, half_col = center_insert1, center_insert2
+		row_range = half_row-offset:half_row+offset
+		col_range = half_col-offset:half_col+offset	
+		calibration_rod[:, :, z] .= dcm_array[row_range, col_range, z];
+	end
+
+	hu_calcium_100 = mean(calibration_rod)
+end
+
 # ╔═╡ c02cc808-ac3b-479a-b5a1-9abb36b93a03
 md"""
 ## Calibration
@@ -59,12 +93,6 @@ densities_cal_high = densities_cal_all[length(densities_cal_low)-5:end-10]
 md"""
 ### Low Energy
 """
-
-# ╔═╡ 668d1999-ce4e-4510-9dd4-84a26ab26dcf
-begin
-	sizes_cal = [30]
-	energies = [80, 135]
-end;
 
 # ╔═╡ c30d5213-abcc-482d-887a-a63b54eed243
 begin
@@ -102,7 +130,7 @@ begin
 	means_135_low = Dict(:density => densities_cal_low, :means => zeros(length(densities_cal_low)))
 	for (i, density) in enumerate(densities_cal_low)
 		for _size in sizes_cal
-			path = joinpath(datadir("dcms", "cal"), string(density), string(_size), string(energies[2]))
+			path = joinpath(datadir("dcms", "cal"), string(density), string(_size), string(energies[3]))
 			dcm = dcmdir_parse(path)
 			dcm_array = load_dcm_array(dcm)
 		
@@ -180,6 +208,9 @@ begin
 	densities_val_low = densities_val_all[1:3]
 	sizes_val = ["small", "medium", "large"]
 end;
+
+# ╔═╡ 06780785-7a4d-4e8f-bc3e-7163ac6374f4
+energies_val = [80, 120, 135]
 
 # ╔═╡ 4c2bf021-6a1d-4c8c-a3f4-7aee6c39c361
 md"""
@@ -292,6 +323,8 @@ begin
 			dilated_mask_S_LD = dilate_recursively(mask_S_LD, 2)
 			dilated_mask_S_LD_3D = cat(dilated_mask_S_LD, dilated_mask_S_LD, dilated_mask_S_LD, dims=3)
 
+			#------- Material Decomposition -------#
+
 			# Low Energy
 			path_80 = datadir("dcms", "val", density, _size, string(energies[1]))
 			dcm_80 = dcmdir_parse(path_80)
@@ -305,7 +338,7 @@ begin
 			]
 
 			# High Energy
-			path_135 = datadir("dcms", "val", density, _size, string(energies[2]))
+			path_135 = datadir("dcms", "val", density, _size, string(energies[3]))
 			dcm_135 = dcmdir_parse(path_135)
 			dcm_array_135 = load_dcm_array(dcm_135)
 			
@@ -358,6 +391,10 @@ begin
 				predicted_mass_small_inserts = predicted_mass_small_inserts,
 			)
 			push!(dfs_low, df_results)
+
+
+			#------- Volume Fraction -------#
+			
 		end
 	end
 end
@@ -413,7 +450,7 @@ begin
 	means_135_high = Dict(:density => densities_cal_high, :means => zeros(length(densities_cal_high)))
 	for (i, density) in enumerate(densities_cal_high)
 		for _size in sizes_cal
-			path = joinpath(datadir("dcms", "cal"), string(density), string(_size), string(energies[2]))
+			path = joinpath(datadir("dcms", "cal"), string(density), string(_size), string(energies[3]))
 			dcm = dcmdir_parse(path)
 			dcm_array = load_dcm_array(dcm)
 		
@@ -559,7 +596,7 @@ begin
 			]
 
 			# High Energy
-			path_135 = datadir("dcms", "val", density, _size, string(energies[2]))
+			path_135 = datadir("dcms", "val", density, _size, string(energies[3]))
 			dcm_135 = dcmdir_parse(path_135)
 			dcm_array_135 = load_dcm_array(dcm_135)
 			
@@ -733,12 +770,15 @@ with_theme(accuracy, medphys_theme)
 # ╠═29f9cf29-9437-42a6-8dab-89105273c187
 # ╠═1b568480-5467-4ffd-9099-de81066e407e
 # ╟─d1502f07-edc5-4baf-b7e9-808d37aeb6b3
+# ╠═668d1999-ce4e-4510-9dd4-84a26ab26dcf
+# ╟─66025838-3122-4316-ba66-35b89e9d510c
+# ╠═00e313f8-1f2f-4e16-ae14-85c1f082c843
+# ╠═17ced35c-de57-4633-be0f-754ccfbfe180
 # ╟─c02cc808-ac3b-479a-b5a1-9abb36b93a03
 # ╠═b9753033-46ef-4509-8102-d4d294171257
 # ╠═aefb07e8-0023-45d0-ae74-c33a665c40a2
 # ╠═a38fee20-1c9c-41ce-991a-a78a5354474c
 # ╟─ee95b544-2e02-4de3-bd1c-019d8fc3cdd6
-# ╠═668d1999-ce4e-4510-9dd4-84a26ab26dcf
 # ╠═c30d5213-abcc-482d-887a-a63b54eed243
 # ╟─37181932-1398-4c45-9ff0-fb8d488ab562
 # ╠═84ab3b1d-cd05-43b1-b889-fdcf94529023
@@ -751,6 +791,7 @@ with_theme(accuracy, medphys_theme)
 # ╟─cb0fc64e-8e36-4250-9ea6-427b5dccf27d
 # ╠═0c05f4a7-45ad-4dc3-8d1c-cfd4a48fce95
 # ╠═af661a05-e9ec-4b0b-8d7e-0ce39af016ec
+# ╠═06780785-7a4d-4e8f-bc3e-7163ac6374f4
 # ╟─4c2bf021-6a1d-4c8c-a3f4-7aee6c39c361
 # ╠═0029b07b-6c4f-49f3-841b-3e75e2f2a34f
 # ╠═42fd7e43-96fe-4c85-9807-9239cc66f10b
