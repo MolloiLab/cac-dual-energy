@@ -58,7 +58,7 @@ function dilate_recursively(mask, n)
 end
 
 function dilate_mask_large(mask)
-    return dilate_recursively(mask, 1)
+    return dilate_recursively(mask, 2)
 end
 
 function ring_mask_large(dilated_mask)
