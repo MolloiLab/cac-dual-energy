@@ -47,6 +47,9 @@ begin
 	energies = [80, 120, 135]
 end;
 
+# ╔═╡ b38de269-be3f-4e5d-adfb-43b1db438937
+optimal_cal_low = [16, 25, 31, 45, 50, 75, 100, 150, 200, 250, 300, 350]
+
 # ╔═╡ 66025838-3122-4316-ba66-35b89e9d510c
 md"""
 ## Volume Fraction & Agatston Calibration
@@ -57,22 +60,23 @@ path = joinpath(datadir("dcms", "cal", "100", "30"), string(energies[2]))
 
 # ╔═╡ 17ced35c-de57-4633-be0f-754ccfbfe180
 begin
-	dcm = dcmdir_parse(path)
-	dcm_array = load_dcm_array(dcm)
+	dcm_cal = dcmdir_parse(path)
+	dcm_array_cal = load_dcm_array(dcm_cal)
 
 	center_insert1, center_insert2 = 187, 318
 	offset = 5
-	calibration_rod = zeros(offset*2 + 1, offset*2 + 1, size(dcm_array, 3))
+	calibration_rod = zeros(offset*2 + 1, offset*2 + 1, size(dcm_array_cal, 3))
 	
-	for z in axes(dcm_array, 3)
-		rows, cols, depth = size(dcm_array)
+	for z in axes(dcm_array_cal, 3)
+		rows, cols, depth = size(dcm_array_cal)
 		half_row, half_col = center_insert1, center_insert2
 		row_range = half_row-offset:half_row+offset
 		col_range = half_col-offset:half_col+offset	
-		calibration_rod[:, :, z] .= dcm_array[row_range, col_range, z];
+		calibration_rod[:, :, z] .= dcm_array_cal[row_range, col_range, z];
 	end
 
 	hu_calcium_100 = mean(calibration_rod)
+	ρ_calcium_100 = 0.100 # mg/cm^3
 end
 
 # ╔═╡ c02cc808-ac3b-479a-b5a1-9abb36b93a03
@@ -83,19 +87,11 @@ md"""
 # ╔═╡ b9753033-46ef-4509-8102-d4d294171257
 densities_cal_all = [3, 6, 9, 10, 16, 25, 31, 45, 50, 75, 100, 150, 200, 250, 300, 350, 400, 450, 500, 550, 600, 650, 700, 750, 800] # calcium densities
 
-# ╔═╡ aefb07e8-0023-45d0-ae74-c33a665c40a2
-densities_cal_low = densities_cal_all[1:12]
-
-# ╔═╡ a38fee20-1c9c-41ce-991a-a78a5354474c
-densities_cal_high = densities_cal_all[length(densities_cal_low)-5:end-10]
-
-# ╔═╡ ee95b544-2e02-4de3-bd1c-019d8fc3cdd6
-md"""
-### Low Energy
-"""
-
 # ╔═╡ c30d5213-abcc-482d-887a-a63b54eed243
 begin
+	densities_cal_low = optimal_cal_low
+	
+	# Low Energy
 	means_80_low = Dict(:density => densities_cal_low, :means => zeros(length(densities_cal_low)))
 	for (i, density) in enumerate(densities_cal_low)
 		for _size in sizes_cal
@@ -118,15 +114,8 @@ begin
 			means_80_low[:means][i] = mean(calibration_rod)
 		end
 	end
-end
 
-# ╔═╡ 37181932-1398-4c45-9ff0-fb8d488ab562
-md"""
-### High Energy
-"""
-
-# ╔═╡ 84ab3b1d-cd05-43b1-b889-fdcf94529023
-begin
+	# High Energy
 	means_135_low = Dict(:density => densities_cal_low, :means => zeros(length(densities_cal_low)))
 	for (i, density) in enumerate(densities_cal_low)
 		for _size in sizes_cal
@@ -150,18 +139,11 @@ begin
 			means_135_low[:means][i] = mean(calibration_rod)
 		end
 	end
+
+	# Fit Parameters
+	calculated_intensities_low = hcat(means_80_low[:means], means_135_low[:means]) # low energy, high energy
+	ps_low = fit_calibration(calculated_intensities_low, densities_cal_low)
 end
-
-# ╔═╡ 6760a907-7817-4692-abd3-2c1b66dc3a50
-md"""
-### Fit Parameters
-"""
-
-# ╔═╡ 727de9ea-d78c-4c5f-9223-351a2fac45e3
-calculated_intensities_low = hcat(means_80_low[:means], means_135_low[:means]) # low energy, high energy
-
-# ╔═╡ 38910d55-20d0-445e-98ea-c2f36aaa5255
-ps_low = fit_calibration(calculated_intensities_low, densities_cal_low)
 
 # ╔═╡ 905ccae5-0ee5-4242-b58a-25ef4bcbb8b9
 md"""
@@ -182,11 +164,9 @@ begin
 end
 
 # ╔═╡ c0095d39-14f2-464d-8f55-ea1739a7b313
-df = DataFrame(
+df_low = DataFrame(
 	densities = densities_cal_low,
 	predicted_densities = predicted_densities_low,
-	mean_intensities_low = means_80_low[:means],
-	mean_intensities_high = means_135_low[:means],
 )
 
 # ╔═╡ cb0fc64e-8e36-4250-9ea6-427b5dccf27d
@@ -257,9 +237,16 @@ begin
 	)
 end;
 
+# ╔═╡ e35e963d-1b3f-4d6e-8598-ea6c104935c2
+md"""
+### Predict
+"""
+
 # ╔═╡ 42fd7e43-96fe-4c85-9807-9239cc66f10b
 begin
-	dfs_low = []
+	dfs_low_md = []
+	dfs_low_vf = []
+	dfs_low_a = []
 	for density in densities_val_low
 		for _size in sizes_val
 			if _size == "small"
@@ -294,37 +281,67 @@ begin
 				mask_S_LD = masks_large[:mask_S_LD]
 			end
 
-			dilated_mask_L_HD = dilate_recursively(mask_L_HD, 2)
+			# Large Insert Masks
+			dilated_mask_L_HD = dilate_mask_large(mask_L_HD)
 			dilated_mask_L_HD_3D = cat(dilated_mask_L_HD, dilated_mask_L_HD, dilated_mask_L_HD, dims=3)
 
-			dilated_mask_L_MD = dilate_recursively(mask_L_MD, 2)
+			ring_mask_L_HD = ring_mask_large(dilated_mask_L_HD)
+			ring_mask_L_HD_3D = cat(ring_mask_L_HD, ring_mask_L_HD, ring_mask_L_HD, dims=3)
+
+			dilated_mask_L_MD = dilate_mask_large(mask_L_MD)
 			dilated_mask_L_MD_3D = cat(dilated_mask_L_MD, dilated_mask_L_MD, dilated_mask_L_MD, dims=3)
 
-			dilated_mask_L_LD = dilate_recursively(mask_L_LD, 2)
+			ring_mask_L_MD = ring_mask_large(dilated_mask_L_MD)
+			ring_mask_L_MD_3D = cat(ring_mask_L_MD, ring_mask_L_MD, ring_mask_L_MD, dims=3)
+
+			dilated_mask_L_LD = dilate_mask_large(mask_L_LD)
 			dilated_mask_L_LD_3D = cat(dilated_mask_L_LD, dilated_mask_L_LD, dilated_mask_L_LD, dims=3)
+
+			ring_mask_L_LD = ring_mask_large(dilated_mask_L_LD)
+			ring_mask_L_LD_3D = cat(ring_mask_L_LD, ring_mask_L_LD, ring_mask_L_LD, dims=3)
 			
 
-			dilated_mask_M_HD = dilate_recursively(mask_M_HD, 2)
+			# Medium Insert Masks
+			dilated_mask_M_HD = dilate_mask_medium(mask_M_HD)
 			dilated_mask_M_HD_3D = cat(dilated_mask_M_HD, dilated_mask_M_HD, dilated_mask_M_HD, dims=3)
 
-			dilated_mask_M_MD = dilate_recursively(mask_M_MD, 2)
+			ring_mask_M_HD = ring_mask_large(dilated_mask_M_HD)
+			ring_mask_M_HD_3D = cat(ring_mask_M_HD, ring_mask_M_HD, ring_mask_M_HD, dims=3)
+
+			dilated_mask_M_MD = dilate_mask_medium(mask_M_MD)
 			dilated_mask_M_MD_3D = cat(dilated_mask_M_MD, dilated_mask_M_MD, dilated_mask_M_MD, dims=3)
 
-			dilated_mask_M_LD = dilate_recursively(mask_M_LD, 2)
-			dilated_mask_M_LD_3D = cat(dilated_mask_M_LD, dilated_mask_M_LD, dilated_mask_M_LD, dims=3)
-			
+			ring_mask_M_MD = ring_mask_large(dilated_mask_M_MD)
+			ring_mask_M_MD_3D = cat(ring_mask_M_MD, ring_mask_M_MD, ring_mask_M_MD, dims=3)
 
-			dilated_mask_S_HD = dilate_recursively(mask_S_HD, 2)
+			dilated_mask_M_LD = dilate_mask_medium(mask_M_LD)
+			dilated_mask_M_LD_3D = cat(dilated_mask_M_LD, dilated_mask_M_LD, dilated_mask_M_LD, dims=3)
+
+			ring_mask_M_LD = ring_mask_large(dilated_mask_M_LD)
+			ring_mask_M_LD_3D = cat(ring_mask_M_LD, ring_mask_M_LD, ring_mask_M_LD, dims=3)
+
+			
+			# Small Insert Masks
+			dilated_mask_S_HD = dilate_mask_small(mask_S_HD)
 			dilated_mask_S_HD_3D = cat(dilated_mask_S_HD, dilated_mask_S_HD, dilated_mask_S_HD, dims=3)
 
-			dilated_mask_S_MD = dilate_recursively(mask_S_MD, 2)
+			ring_mask_S_HD = ring_mask_large(dilated_mask_S_HD)
+			ring_mask_S_HD_3D = cat(ring_mask_S_HD, ring_mask_S_HD, ring_mask_S_HD, dims=3)
+
+			dilated_mask_S_MD = dilate_mask_small(mask_S_MD)
 			dilated_mask_S_MD_3D = cat(dilated_mask_S_MD, dilated_mask_S_MD, dilated_mask_S_MD, dims=3)
 
-			dilated_mask_S_LD = dilate_recursively(mask_S_LD, 2)
+			ring_mask_S_MD = ring_mask_large(dilated_mask_S_MD)
+			ring_mask_S_MD_3D = cat(ring_mask_S_MD, ring_mask_S_MD, ring_mask_S_MD, dims=3)
+
+			dilated_mask_S_LD = dilate_mask_small(mask_S_LD)
 			dilated_mask_S_LD_3D = cat(dilated_mask_S_LD, dilated_mask_S_LD, dilated_mask_S_LD, dims=3)
 
-			#------- Material Decomposition -------#
+			ring_mask_S_LD = ring_mask_large(dilated_mask_S_LD)
+			ring_mask_S_LD_3D = cat(ring_mask_S_LD, ring_mask_S_LD, ring_mask_S_LD, dims=3)
 
+			#------- Material Decomposition -------#
+			
 			# Low Energy
 			path_80 = datadir("dcms", "val", density, _size, string(energies[1]))
 			dcm_80 = dcmdir_parse(path_80)
@@ -348,6 +365,21 @@ begin
 				mean(dcm_array_135[dilated_mask_S_HD_3D]), mean(dcm_array_135[dilated_mask_S_MD_3D]), mean(dcm_array_135[dilated_mask_S_LD_3D])
 			]
 
+			# Calculate ground truth mass 
+			# π * radius_mm^2 * slice_thickness_mm * number of slices
+			vol_small_insert_gt = π * (1/2)^2 * (pixel_size[3] * 3) # mm^3
+			vol_medium_insert_gt = π * (3/2)^2 * (pixel_size[3] * 3) # mm^3
+			vol_large_insert_gt = π * (5/2)^2 * (pixel_size[3] * 3) # mm^3
+			
+			volumes_inserts_mm3 = [vol_small_insert_gt, vol_medium_insert_gt, 
+			vol_large_insert_gt] # mm^3
+			volumes_inserts_cm3 = volumes_inserts_mm3 * 1e-3 # cm^3
+			
+			gt_density = parse.(Int, split(density, "_"))
+			gt_mass_large_inserts = gt_density .* volumes_inserts_cm3[3]
+			gt_mass_medium_inserts = gt_density .* volumes_inserts_cm3[2]
+			gt_mass_small_inserts = gt_density .* volumes_inserts_cm3[1]
+			
 			calculated_intensities = hcat(means_80, means_135)
 			predicted_densities = zeros(size(means_135))
 			for i in eachindex(predicted_densities)
@@ -365,24 +397,10 @@ begin
 			predicted_mass_medium_inserts = predicted_densities[4:6] .* vol_medium
 			predicted_mass_small_inserts = predicted_densities[7:9] .* vol_small
 
-			# Calculate ground truth mass 
-			# π * radius_mm^2 * slice_thickness_mm * number of slices
-			vol_small_insert_gt = π * (1/2)^2 * (pixel_size[3] * 3) # mm^3
-			vol_medium_insert_gt = π * (3/2)^2 * (pixel_size[3] * 3) # mm^3
-			vol_large_insert_gt = π * (5/2)^2 * (pixel_size[3] * 3) # mm^3
-			
-			volumes_inserts_mm3 = [vol_small_insert_gt, vol_medium_insert_gt, 
-			vol_large_insert_gt] # mm^3
-			volumes_inserts_cm3 = volumes_inserts_mm3 * 1e-3 # cm^3
-			
-			gt_density = parse.(Int, split(density, "_"))
-			gt_mass_large_inserts = gt_density .* volumes_inserts_cm3[3]
-			gt_mass_medium_inserts = gt_density .* volumes_inserts_cm3[2]
-			gt_mass_small_inserts = gt_density .* volumes_inserts_cm3[1]
-
 			df_results = DataFrame(
 				phantom_size = _size,
 				density = density,
+				insert_densities = [:low_density, :medium_density, :high_density],
 				gt_mass_large_inserts = gt_mass_large_inserts,
 				predicted_mass_large_inserts = predicted_mass_large_inserts,
 				gt_mass_medium_inserts = gt_mass_medium_inserts,
@@ -390,10 +408,163 @@ begin
 				gt_mass_small_inserts = gt_mass_small_inserts,
 				predicted_mass_small_inserts = predicted_mass_small_inserts,
 			)
-			push!(dfs_low, df_results)
-
+			push!(dfs_low_md, df_results)
 
 			#------- Volume Fraction -------#
+			
+			path = datadir("dcms", "val", density, _size, string(energies[2]))
+			dcm = dcmdir_parse(path)
+			dcm_array = load_dcm_array(dcm)
+			voxel_size = pixel_size[1] * pixel_size[2] * pixel_size[3]
+
+			# Score Inserts
+			hu_heart_tissue_large_hd = mean(dcm_array[ring_mask_L_HD_3D])
+			mass_large_hd = score(dcm_array[dilated_mask_L_HD_3D], hu_calcium_100, hu_heart_tissue_large_hd, voxel_size, ρ_calcium_100, VolumeFraction())
+
+			hu_heart_tissue_large_md = mean(dcm_array[ring_mask_L_MD_3D])
+			mass_large_md = score(dcm_array[dilated_mask_L_MD_3D], hu_calcium_100, hu_heart_tissue_large_md, voxel_size, ρ_calcium_100, VolumeFraction())
+
+			hu_heart_tissue_large_ld = mean(dcm_array[ring_mask_L_LD_3D])
+			mass_large_ld = score(dcm_array[dilated_mask_L_LD_3D], hu_calcium_100, hu_heart_tissue_large_ld, voxel_size, ρ_calcium_100, VolumeFraction())
+
+			hu_heart_tissue_medium_hd = mean(dcm_array[ring_mask_M_HD_3D])
+			mass_medium_hd = score(dcm_array[dilated_mask_M_HD_3D], hu_calcium_100, hu_heart_tissue_medium_hd, voxel_size, ρ_calcium_100, VolumeFraction())
+
+			hu_heart_tissue_medium_md = mean(dcm_array[ring_mask_M_MD_3D])
+			mass_medium_md = score(dcm_array[dilated_mask_M_MD_3D], hu_calcium_100, hu_heart_tissue_medium_md, voxel_size, ρ_calcium_100, VolumeFraction())
+
+			hu_heart_tissue_medium_ld = mean(dcm_array[ring_mask_M_LD_3D])
+			mass_medium_ld = score(dcm_array[dilated_mask_M_LD_3D], hu_calcium_100, hu_heart_tissue_medium_ld, voxel_size, ρ_calcium_100, VolumeFraction())
+
+			hu_heart_tissue_small_hd = mean(dcm_array[ring_mask_S_HD_3D])
+			mass_small_hd = score(dcm_array[dilated_mask_S_HD_3D], hu_calcium_100, hu_heart_tissue_large_hd, voxel_size, ρ_calcium_100, VolumeFraction())
+
+			hu_heart_tissue_small_md = mean(dcm_array[ring_mask_S_MD_3D])
+			mass_small_md = score(dcm_array[dilated_mask_S_MD_3D], hu_calcium_100, hu_heart_tissue_large_md, voxel_size, ρ_calcium_100, VolumeFraction())
+
+			hu_heart_tissue_small_ld = mean(dcm_array[ring_mask_S_LD_3D])
+			mass_small_ld = score(dcm_array[dilated_mask_S_LD_3D], hu_calcium_100, hu_heart_tissue_large_ld, voxel_size, ρ_calcium_100, VolumeFraction())
+
+			predicted_mass_large_inserts = [mass_large_hd, mass_large_md, mass_large_ld]
+			predicted_mass_medium_inserts = [mass_medium_hd, mass_medium_md, mass_medium_ld]
+			predicted_mass_small_inserts = [mass_small_hd, mass_small_md, mass_small_ld]
+
+			df_results = DataFrame(
+				phantom_size = _size,
+				density = density,
+				insert_densities = [:low_density, :medium_density, :high_density],
+				gt_mass_large_inserts = gt_mass_large_inserts,
+				predicted_mass_large_inserts = predicted_mass_large_inserts,
+				gt_mass_medium_inserts = gt_mass_medium_inserts,
+				predicted_mass_medium_inserts = predicted_mass_medium_inserts,
+				gt_mass_small_inserts = gt_mass_small_inserts,
+				predicted_mass_small_inserts = predicted_mass_small_inserts,
+			)
+			push!(dfs_low_vf, df_results)
+
+			#------- Agatston -------#
+			
+			alg = Agatston()
+			mass_cal_factor = ρ_calcium_100 / hu_calcium_100
+			kV = 120
+				
+			overlayed_mask_l_hd = create_mask(dcm_array, dilated_mask_L_HD_3D)
+			agat_l_hd, vol_l_hd, mass_l_hd = score(
+				overlayed_mask_l_hd,
+				pixel_size,
+				mass_cal_factor,
+				alg;
+				kV=kV
+			)
+
+			overlayed_mask_l_md = create_mask(dcm_array, dilated_mask_L_MD_3D)
+			agat_l_md, vol_l_md, mass_l_md = score(
+				overlayed_mask_l_md,
+				pixel_size,
+				mass_cal_factor,
+				alg;
+				kV=kV
+			)
+
+			overlayed_mask_l_ld = create_mask(dcm_array, dilated_mask_L_LD_3D)
+			agat_l_ld, vol_l_ld, mass_l_ld = score(
+				overlayed_mask_l_ld,
+				pixel_size,
+				mass_cal_factor,
+				alg;
+				kV=kV
+			)
+			
+			overlayed_mask_m_hd = create_mask(dcm_array, dilated_mask_M_HD_3D)
+			agat_m_hd, vol_m_hd, mass_m_hd = score(
+				overlayed_mask_m_hd,
+				pixel_size,
+				mass_cal_factor,
+				alg;
+				kV=kV
+			)
+
+			overlayed_mask_m_md = create_mask(dcm_array, dilated_mask_M_MD_3D)
+			agat_m_md, vol_m_md, mass_m_md = score(
+				overlayed_mask_m_md,
+				pixel_size,
+				mass_cal_factor,
+				alg;
+				kV=kV
+			)
+
+			overlayed_mask_m_ld = create_mask(dcm_array, dilated_mask_M_LD_3D)
+			agat_m_ld, vol_m_ld, mass_m_ld = score(
+				overlayed_mask_m_ld,
+				pixel_size,
+				mass_cal_factor,
+				alg;
+				kV=kV
+			)
+
+			overlayed_mask_s_hd = create_mask(dcm_array, dilated_mask_S_HD_3D)
+			agat_s_hd, vol_s_hd, mass_s_hd = score(
+				overlayed_mask_s_hd,
+				pixel_size,
+				mass_cal_factor,
+				alg;
+				kV=kV
+			)
+
+			overlayed_mask_s_md = create_mask(dcm_array, dilated_mask_S_MD_3D)
+			agat_s_md, vol_s_md, mass_s_md = score(
+				overlayed_mask_s_md,
+				pixel_size,
+				mass_cal_factor,
+				alg;
+				kV=kV
+			)
+
+			overlayed_mask_s_ld = create_mask(dcm_array, dilated_mask_S_LD_3D)
+			agat_s_ld, vol_s_ld, mass_s_ld = score(
+				overlayed_mask_s_ld,
+				pixel_size,
+				mass_cal_factor,
+				alg;
+				kV=kV
+			)
+
+			predicted_mass_large_inserts = [mass_l_hd, mass_l_md, mass_l_ld]
+			predicted_mass_medium_inserts = [mass_m_hd, mass_m_md, mass_m_ld]
+			predicted_mass_small_inserts = [mass_s_hd, mass_s_md, mass_s_ld]
+
+			df_results = DataFrame(
+				phantom_size = _size,
+				density = density,
+				insert_densities = [:low_density, :medium_density, :high_density],
+				gt_mass_large_inserts = gt_mass_large_inserts,
+				predicted_mass_large_inserts = predicted_mass_large_inserts,
+				gt_mass_medium_inserts = gt_mass_medium_inserts,
+				predicted_mass_medium_inserts = predicted_mass_medium_inserts,
+				gt_mass_small_inserts = gt_mass_small_inserts,
+				predicted_mass_small_inserts = predicted_mass_small_inserts,
+			)
+			push!(dfs_low_a, df_results)
 			
 		end
 	end
@@ -409,13 +580,14 @@ md"""
 ## Calibration
 """
 
-# ╔═╡ 124b7573-113c-4cdf-9a5c-e0cc9c78dfaa
-md"""
-### Low Energy
-"""
+# ╔═╡ 2e882999-ded4-43f5-aa45-66f6438dc641
+optimal_cal_high = [10, 25, 45, 75, 150, 250, 350, 450, 550, 650]
 
 # ╔═╡ b63a9eee-7d14-4b4a-92b5-6b960aad90c1
 begin
+	densities_cal_high = optimal_cal_high
+
+	# Low Energy
 	means_80_high = Dict(:density => densities_cal_high, :means => zeros(length(densities_cal_high)))
 	for (i, density) in enumerate(densities_cal_high)
 		for _size in sizes_cal
@@ -438,15 +610,8 @@ begin
 			means_80_high[:means][i] = mean(calibration_rod)
 		end
 	end
-end
 
-# ╔═╡ 6bc5781a-d025-46d8-bd70-19cb374d3c4e
-md"""
-### High Energy
-"""
-
-# ╔═╡ 390c73cc-8253-4547-afb3-c225b58fb2c4
-begin
+	# High energy	
 	means_135_high = Dict(:density => densities_cal_high, :means => zeros(length(densities_cal_high)))
 	for (i, density) in enumerate(densities_cal_high)
 		for _size in sizes_cal
@@ -470,25 +635,19 @@ begin
 			means_135_high[:means][i] = mean(calibration_rod)
 		end
 	end
+
+	# Fit Parameters
+	calculated_intensities_high = hcat(means_80_high[:means], means_135_high[:means]) # low energy, high energy
+		
+	ps_high = fit_calibration(calculated_intensities_high, densities_cal_high)
 end
-
-# ╔═╡ 07e1b431-84c6-4cfc-ad2b-edc54fdc59ca
-md"""
-### Fit Parameters
-"""
-
-# ╔═╡ 565eade7-574f-473a-a9a4-6aeca2a812e6
-calculated_intensities_high = hcat(means_80_high[:means], means_135_high[:means]) # low energy, high energy
-
-# ╔═╡ da5d5ca7-5e6d-425c-823b-881c59ff8a3f
-ps_high = fit_calibration(calculated_intensities_high, densities_cal_high)
 
 # ╔═╡ 776b150d-ddbe-494a-9e53-632a33bb502b
 md"""
 ### Check Results
 """
 
-# ╔═╡ 7accb307-22f1-4035-951b-14bd04bcf5b2
+# ╔═╡ 3d45ea72-bc18-4651-8a0d-286294d1725e
 begin
 	predicted_densities_high = []
 	
@@ -501,12 +660,10 @@ begin
 	end
 end
 
-# ╔═╡ 3226a396-db02-4f50-ac67-9f8c57e7566b
+# ╔═╡ 7f0eb143-a2bf-4623-9d3e-9698f03f5311
 df_high = DataFrame(
 	densities = densities_cal_high,
 	predicted_densities = predicted_densities_high,
-	mean_intensities_low = means_80_high[:means],
-	mean_intensities_high = means_135_high[:means],
 )
 
 # ╔═╡ 397c56dc-79c0-4a18-8a04-fded2676c658
@@ -517,9 +674,16 @@ md"""
 # ╔═╡ ccce7595-bc08-4855-819b-9dd3e9e88198
 densities_val_high = densities_val_all[length(densities_val_low):end];
 
+# ╔═╡ ca68557b-b343-4f1c-96cb-5cccb10636ad
+md"""
+### Predict
+"""
+
 # ╔═╡ 044e548f-f81e-4cf8-a872-8e5440e74ddb
 begin
-	dfs_high = []
+	dfs_high_md = []
+	dfs_high_vf = []
+	dfs_high_a = []
 	for density in densities_val_high
 		for _size in sizes_val
 			if _size == "small"
@@ -554,35 +718,66 @@ begin
 				mask_S_LD = masks_large[:mask_S_LD]
 			end
 
-			dilated_mask_L_HD = dilate_recursively(mask_L_HD, 2)
+			# Large Insert Masks
+			dilated_mask_L_HD = dilate_mask_large(mask_L_HD)
 			dilated_mask_L_HD_3D = cat(dilated_mask_L_HD, dilated_mask_L_HD, dilated_mask_L_HD, dims=3)
 
-			dilated_mask_L_MD = dilate_recursively(mask_L_MD, 2)
+			ring_mask_L_HD = ring_mask_large(dilated_mask_L_HD)
+			ring_mask_L_HD_3D = cat(ring_mask_L_HD, ring_mask_L_HD, ring_mask_L_HD, dims=3)
+
+			dilated_mask_L_MD = dilate_mask_large(mask_L_MD)
 			dilated_mask_L_MD_3D = cat(dilated_mask_L_MD, dilated_mask_L_MD, dilated_mask_L_MD, dims=3)
 
-			dilated_mask_L_LD = dilate_recursively(mask_L_LD, 2)
-			dilated_mask_L_LD_3D = cat(dilated_mask_L_LD, dilated_mask_L_LD, dilated_mask_L_LD, dims=3)
-			
+			ring_mask_L_MD = ring_mask_large(dilated_mask_L_MD)
+			ring_mask_L_MD_3D = cat(ring_mask_L_MD, ring_mask_L_MD, ring_mask_L_MD, dims=3)
 
-			dilated_mask_M_HD = dilate_recursively(mask_M_HD, 2)
+			dilated_mask_L_LD = dilate_mask_large(mask_L_LD)
+			dilated_mask_L_LD_3D = cat(dilated_mask_L_LD, dilated_mask_L_LD, dilated_mask_L_LD, dims=3)
+
+			ring_mask_L_LD = ring_mask_large(dilated_mask_L_LD)
+			ring_mask_L_LD_3D = cat(ring_mask_L_LD, ring_mask_L_LD, ring_mask_L_LD, dims=3)
+			
+			# Medium Insert Masks
+			dilated_mask_M_HD = dilate_mask_medium(mask_M_HD)
 			dilated_mask_M_HD_3D = cat(dilated_mask_M_HD, dilated_mask_M_HD, dilated_mask_M_HD, dims=3)
 
-			dilated_mask_M_MD = dilate_recursively(mask_M_MD, 2)
+			ring_mask_M_HD = ring_mask_large(dilated_mask_M_HD)
+			ring_mask_M_HD_3D = cat(ring_mask_M_HD, ring_mask_M_HD, ring_mask_M_HD, dims=3)
+
+			dilated_mask_M_MD = dilate_mask_medium(mask_M_MD)
 			dilated_mask_M_MD_3D = cat(dilated_mask_M_MD, dilated_mask_M_MD, dilated_mask_M_MD, dims=3)
 
-			dilated_mask_M_LD = dilate_recursively(mask_M_LD, 2)
-			dilated_mask_M_LD_3D = cat(dilated_mask_M_LD, dilated_mask_M_LD, dilated_mask_M_LD, dims=3)
-			
+			ring_mask_M_MD = ring_mask_large(dilated_mask_M_MD)
+			ring_mask_M_MD_3D = cat(ring_mask_M_MD, ring_mask_M_MD, ring_mask_M_MD, dims=3)
 
-			dilated_mask_S_HD = dilate_recursively(mask_S_HD, 2)
+			dilated_mask_M_LD = dilate_mask_medium(mask_M_LD)
+			dilated_mask_M_LD_3D = cat(dilated_mask_M_LD, dilated_mask_M_LD, dilated_mask_M_LD, dims=3)
+
+			ring_mask_M_LD = ring_mask_large(dilated_mask_M_LD)
+			ring_mask_M_LD_3D = cat(ring_mask_M_LD, ring_mask_M_LD, ring_mask_M_LD, dims=3)
+
+			
+			# Small Insert Masks
+			dilated_mask_S_HD = dilate_mask_small(mask_S_HD)
 			dilated_mask_S_HD_3D = cat(dilated_mask_S_HD, dilated_mask_S_HD, dilated_mask_S_HD, dims=3)
 
-			dilated_mask_S_MD = dilate_recursively(mask_S_MD, 2)
+			ring_mask_S_HD = ring_mask_large(dilated_mask_S_HD)
+			ring_mask_S_HD_3D = cat(ring_mask_S_HD, ring_mask_S_HD, ring_mask_S_HD, dims=3)
+
+			dilated_mask_S_MD = dilate_mask_small(mask_S_MD)
 			dilated_mask_S_MD_3D = cat(dilated_mask_S_MD, dilated_mask_S_MD, dilated_mask_S_MD, dims=3)
 
-			dilated_mask_S_LD = dilate_recursively(mask_S_LD, 2)
+			ring_mask_S_MD = ring_mask_large(dilated_mask_S_MD)
+			ring_mask_S_MD_3D = cat(ring_mask_S_MD, ring_mask_S_MD, ring_mask_S_MD, dims=3)
+
+			dilated_mask_S_LD = dilate_mask_small(mask_S_LD)
 			dilated_mask_S_LD_3D = cat(dilated_mask_S_LD, dilated_mask_S_LD, dilated_mask_S_LD, dims=3)
 
+			ring_mask_S_LD = ring_mask_large(dilated_mask_S_LD)
+			ring_mask_S_LD_3D = cat(ring_mask_S_LD, ring_mask_S_LD, ring_mask_S_LD, dims=3)
+
+			#------- Material Decomposition -------#
+			
 			# Low Energy
 			path_80 = datadir("dcms", "val", density, _size, string(energies[1]))
 			dcm_80 = dcmdir_parse(path_80)
@@ -606,6 +801,21 @@ begin
 				mean(dcm_array_135[dilated_mask_S_HD_3D]), mean(dcm_array_135[dilated_mask_S_MD_3D]), mean(dcm_array_135[dilated_mask_S_LD_3D])
 			]
 
+			# Calculate ground truth mass 
+			# π * radius_mm^2 * slice_thickness_mm * number of slices
+			vol_small_insert_gt = π * (1/2)^2 * (pixel_size[3] * 3) # mm^3
+			vol_medium_insert_gt = π * (3/2)^2 * (pixel_size[3] * 3) # mm^3
+			vol_large_insert_gt = π * (5/2)^2 * (pixel_size[3] * 3) # mm^3
+			
+			volumes_inserts_mm3 = [vol_small_insert_gt, vol_medium_insert_gt, 
+			vol_large_insert_gt] # mm^3
+			volumes_inserts_cm3 = volumes_inserts_mm3 * 1e-3 # cm^3
+			
+			gt_density = parse.(Int, split(density, "_"))
+			gt_mass_large_inserts = gt_density .* volumes_inserts_cm3[3]
+			gt_mass_medium_inserts = gt_density .* volumes_inserts_cm3[2]
+			gt_mass_small_inserts = gt_density .* volumes_inserts_cm3[1]
+			
 			calculated_intensities = hcat(means_80, means_135)
 			predicted_densities = zeros(size(means_135))
 			for i in eachindex(predicted_densities)
@@ -623,24 +833,10 @@ begin
 			predicted_mass_medium_inserts = predicted_densities[4:6] .* vol_medium
 			predicted_mass_small_inserts = predicted_densities[7:9] .* vol_small
 
-			# Calculate ground truth mass 
-			# π * radius_mm^2 * slice_thickness_mm * number of slices
-			vol_small_insert_gt = π * (1/2)^2 * (pixel_size[3] * 3) # mm^3
-			vol_medium_insert_gt = π * (3/2)^2 * (pixel_size[3] * 3) # mm^3
-			vol_large_insert_gt = π * (5/2)^2 * (pixel_size[3] * 3) # mm^3
-			
-			volumes_inserts_mm3 = [vol_small_insert_gt, vol_medium_insert_gt, 
-			vol_large_insert_gt] # mm^3
-			volumes_inserts_cm3 = volumes_inserts_mm3 * 1e-3 # cm^3
-			
-			gt_density = parse.(Int, split(density, "_"))
-			gt_mass_large_inserts = gt_density .* volumes_inserts_cm3[3]
-			gt_mass_medium_inserts = gt_density .* volumes_inserts_cm3[2]
-			gt_mass_small_inserts = gt_density .* volumes_inserts_cm3[1]
-
 			df_results = DataFrame(
 				phantom_size = _size,
 				density = density,
+				insert_densities = [:low_density, :medium_density, :high_density],
 				gt_mass_large_inserts = gt_mass_large_inserts,
 				predicted_mass_large_inserts = predicted_mass_large_inserts,
 				gt_mass_medium_inserts = gt_mass_medium_inserts,
@@ -648,7 +844,164 @@ begin
 				gt_mass_small_inserts = gt_mass_small_inserts,
 				predicted_mass_small_inserts = predicted_mass_small_inserts,
 			)
-			push!(dfs_high, df_results)
+			push!(dfs_high_md, df_results)
+
+			#------- Volume Fraction -------#
+			
+			path = datadir("dcms", "val", density, _size, string(energies[2]))
+			dcm = dcmdir_parse(path)
+			dcm_array = load_dcm_array(dcm)
+			voxel_size = pixel_size[1] * pixel_size[2] * pixel_size[3]
+
+			# Score Inserts
+			hu_heart_tissue_large_hd = mean(dcm_array[ring_mask_L_HD_3D])
+			mass_large_hd = score(dcm_array[dilated_mask_L_HD_3D], hu_calcium_100, hu_heart_tissue_large_hd, voxel_size, ρ_calcium_100, VolumeFraction())
+
+			hu_heart_tissue_large_md = mean(dcm_array[ring_mask_L_MD_3D])
+			mass_large_md = score(dcm_array[dilated_mask_L_MD_3D], hu_calcium_100, hu_heart_tissue_large_md, voxel_size, ρ_calcium_100, VolumeFraction())
+
+			hu_heart_tissue_large_ld = mean(dcm_array[ring_mask_L_LD_3D])
+			mass_large_ld = score(dcm_array[dilated_mask_L_LD_3D], hu_calcium_100, hu_heart_tissue_large_ld, voxel_size, ρ_calcium_100, VolumeFraction())
+
+			hu_heart_tissue_medium_hd = mean(dcm_array[ring_mask_M_HD_3D])
+			mass_medium_hd = score(dcm_array[dilated_mask_M_HD_3D], hu_calcium_100, hu_heart_tissue_medium_hd, voxel_size, ρ_calcium_100, VolumeFraction())
+
+			hu_heart_tissue_medium_md = mean(dcm_array[ring_mask_M_MD_3D])
+			mass_medium_md = score(dcm_array[dilated_mask_M_MD_3D], hu_calcium_100, hu_heart_tissue_medium_md, voxel_size, ρ_calcium_100, VolumeFraction())
+
+			hu_heart_tissue_medium_ld = mean(dcm_array[ring_mask_M_LD_3D])
+			mass_medium_ld = score(dcm_array[dilated_mask_M_LD_3D], hu_calcium_100, hu_heart_tissue_medium_ld, voxel_size, ρ_calcium_100, VolumeFraction())
+
+			hu_heart_tissue_small_hd = mean(dcm_array[ring_mask_S_HD_3D])
+			mass_small_hd = score(dcm_array[dilated_mask_S_HD_3D], hu_calcium_100, hu_heart_tissue_large_hd, voxel_size, ρ_calcium_100, VolumeFraction())
+
+			hu_heart_tissue_small_md = mean(dcm_array[ring_mask_S_MD_3D])
+			mass_small_md = score(dcm_array[dilated_mask_S_MD_3D], hu_calcium_100, hu_heart_tissue_large_md, voxel_size, ρ_calcium_100, VolumeFraction())
+
+			hu_heart_tissue_small_ld = mean(dcm_array[ring_mask_S_LD_3D])
+			mass_small_ld = score(dcm_array[dilated_mask_S_LD_3D], hu_calcium_100, hu_heart_tissue_large_ld, voxel_size, ρ_calcium_100, VolumeFraction())
+
+			predicted_mass_large_inserts = [mass_large_hd, mass_large_md, mass_large_ld]
+			predicted_mass_medium_inserts = [mass_medium_hd, mass_medium_md, mass_medium_ld]
+			predicted_mass_small_inserts = [mass_small_hd, mass_small_md, mass_small_ld]
+
+			df_results = DataFrame(
+				phantom_size = _size,
+				density = density,
+				insert_densities = [:low_density, :medium_density, :high_density],
+				gt_mass_large_inserts = gt_mass_large_inserts,
+				predicted_mass_large_inserts = predicted_mass_large_inserts,
+				gt_mass_medium_inserts = gt_mass_medium_inserts,
+				predicted_mass_medium_inserts = predicted_mass_medium_inserts,
+				gt_mass_small_inserts = gt_mass_small_inserts,
+				predicted_mass_small_inserts = predicted_mass_small_inserts,
+			)
+			push!(dfs_high_vf, df_results)
+
+			#------- Agatston -------#
+			
+			alg = Agatston()
+			mass_cal_factor = ρ_calcium_100 / hu_calcium_100
+			kV = 120
+				
+			overlayed_mask_l_hd = create_mask(dcm_array, dilated_mask_L_HD_3D)
+			agat_l_hd, vol_l_hd, mass_l_hd = score(
+				overlayed_mask_l_hd,
+				pixel_size,
+				mass_cal_factor,
+				alg;
+				kV=kV
+			)
+
+			overlayed_mask_l_md = create_mask(dcm_array, dilated_mask_L_MD_3D)
+			agat_l_md, vol_l_md, mass_l_md = score(
+				overlayed_mask_l_md,
+				pixel_size,
+				mass_cal_factor,
+				alg;
+				kV=kV
+			)
+
+			overlayed_mask_l_ld = create_mask(dcm_array, dilated_mask_L_LD_3D)
+			agat_l_ld, vol_l_ld, mass_l_ld = score(
+				overlayed_mask_l_ld,
+				pixel_size,
+				mass_cal_factor,
+				alg;
+				kV=kV
+			)
+			
+			overlayed_mask_m_hd = create_mask(dcm_array, dilated_mask_M_HD_3D)
+			agat_m_hd, vol_m_hd, mass_m_hd = score(
+				overlayed_mask_m_hd,
+				pixel_size,
+				mass_cal_factor,
+				alg;
+				kV=kV
+			)
+
+			overlayed_mask_m_md = create_mask(dcm_array, dilated_mask_M_MD_3D)
+			agat_m_md, vol_m_md, mass_m_md = score(
+				overlayed_mask_m_md,
+				pixel_size,
+				mass_cal_factor,
+				alg;
+				kV=kV
+			)
+
+			overlayed_mask_m_ld = create_mask(dcm_array, dilated_mask_M_LD_3D)
+			agat_m_ld, vol_m_ld, mass_m_ld = score(
+				overlayed_mask_m_ld,
+				pixel_size,
+				mass_cal_factor,
+				alg;
+				kV=kV
+			)
+
+			overlayed_mask_s_hd = create_mask(dcm_array, dilated_mask_S_HD_3D)
+			agat_s_hd, vol_s_hd, mass_s_hd = score(
+				overlayed_mask_s_hd,
+				pixel_size,
+				mass_cal_factor,
+				alg;
+				kV=kV
+			)
+
+			overlayed_mask_s_md = create_mask(dcm_array, dilated_mask_S_MD_3D)
+			agat_s_md, vol_s_md, mass_s_md = score(
+				overlayed_mask_s_md,
+				pixel_size,
+				mass_cal_factor,
+				alg;
+				kV=kV
+			)
+
+			overlayed_mask_s_ld = create_mask(dcm_array, dilated_mask_S_LD_3D)
+			agat_s_ld, vol_s_ld, mass_s_ld = score(
+				overlayed_mask_s_ld,
+				pixel_size,
+				mass_cal_factor,
+				alg;
+				kV=kV
+			)
+
+			predicted_mass_large_inserts = [mass_l_hd, mass_l_md, mass_l_ld]
+			predicted_mass_medium_inserts = [mass_m_hd, mass_m_md, mass_m_ld]
+			predicted_mass_small_inserts = [mass_s_hd, mass_s_md, mass_s_ld]
+
+			df_results = DataFrame(
+				phantom_size = _size,
+				density = density,
+				insert_densities = [:low_density, :medium_density, :high_density],
+				gt_mass_large_inserts = gt_mass_large_inserts,
+				predicted_mass_large_inserts = predicted_mass_large_inserts,
+				gt_mass_medium_inserts = gt_mass_medium_inserts,
+				predicted_mass_medium_inserts = predicted_mass_medium_inserts,
+				gt_mass_small_inserts = gt_mass_small_inserts,
+				predicted_mass_small_inserts = predicted_mass_small_inserts,
+			)
+			push!(dfs_high_a, df_results)
+			
 		end
 	end
 end
@@ -676,33 +1029,49 @@ medphys_theme = Theme(
 	)
 );
 
+# ╔═╡ 1b6ce948-c725-46e8-a414-c64a7ca49239
+md"""
+## Low Density
+"""
+
+# ╔═╡ 4355944f-2562-48d1-bddc-82cb6e23472c
+md"""
+### Accuracy
+"""
+
 # ╔═╡ ca81d1ea-252a-4d43-aab8-4a08f95176dc
-new_df_low = vcat(dfs_low[1:length(dfs_low)]...);
+new_df_low_md = vcat(dfs_low_md[1:length(dfs_low_md)]...);
+
+# ╔═╡ b0af4257-b1a9-448d-83ec-fd5494595aa2
+new_df_low_vf = vcat(dfs_low_vf[1:length(dfs_low_vf)]...);
+
+# ╔═╡ 9efebaa2-458a-4d5a-a44d-f01f1dddac18
+new_df_low_a = vcat(dfs_low_a[1:length(dfs_low_a)]...);
 
 # ╔═╡ ed6a9d9d-ce6a-4eab-955b-c6e676103603
-co_1_low, r_squared_1_low, rms_values_1_low, pred_1_low = calculate_coefficients(new_df_low);
+co_1_low_md, r_squared_1_low_md, rms_values_1_low_md, pred_1_low_md = calculate_coefficients(new_df_low_md);
 
-# ╔═╡ 066d0e67-a4db-4acc-b1c8-9fcb6fd76e88
-new_df_high = vcat(dfs_high[1:length(dfs_high)]...);
+# ╔═╡ 073282e1-f842-41a0-98dc-c1b4bf8959b0
+co_1_low_vf, r_squared_1_low_vf, rms_values_1_low_vf, pred_1_low_vf = calculate_coefficients(new_df_low_vf);
 
-# ╔═╡ 4cadf68d-5cce-4331-8e96-8757a42667ef
-co_1_high, r_squared_1_high, rms_values_1_high, pred_1_high = calculate_coefficients(new_df_high);
+# ╔═╡ d3459d52-d9a0-492b-b540-342ea732486b
+co_1_low_a, r_squared_1_low_a, rms_values_1_low_a, pred_1_low_a = calculate_coefficients(new_df_low_a);
 
 # ╔═╡ 5c002c0a-10cf-4eb3-bac1-08ac25aab4cf
-function accuracy()
+function accuracy_low()
 	f = Figure()
 
 	##-- A --##
 	ax = Axis(
 		f[1, 1],
-		xticks = collect(-5:5:25),
-		yticks = collect(-5:5:25),
+		xticks = collect(-5:10:25),
+		yticks = collect(-5:10:25),
 		xlabel = "Known Mass (mg)",
 		ylabel = "Calculated Mass (mg)",
 		title = "Material Decomposition (Low Density)",
 	)
 	
-	df = new_df_low
+	df = new_df_low_md
 	sc1 = scatter!(
 		df[!, :gt_mass_large_inserts], df[!, :predicted_mass_large_inserts]
 	)
@@ -713,22 +1082,22 @@ function accuracy()
 		df[!, :gt_mass_small_inserts], df[!, :predicted_mass_small_inserts], color=:red
 	)
 	ln1 = lines!([-1000, 1000], [-1000, 1000])
-	ln2 = lines!(collect(1:1000), pred_1_low, linestyle=:dashdot)
-	create_textbox(f[1, 1], co_1_low, r_squared_1_low, rms_values_1_low)
+	ln2 = lines!(collect(1:1000), pred_1_low_md, linestyle=:dashdot)
+	create_textbox(f[1, 1], co_1_low_md, r_squared_1_low_md, rms_values_1_low_md)
 	
 	xlims!(ax, low=-5, high=25)
 	ylims!(ax, low=-5, high=25)
 
 	ax = Axis(
 		f[2, 1],
-		xticks = collect(-50:50:250),
-		yticks = collect(-50:50:250),
+		xticks = collect(-5:10:25),
+		yticks = collect(-5:10:25),
 		xlabel = "Known Mass (mg)",
 		ylabel = "Calculated Mass (mg)",
-		title = "Material Decomposition (High Density)",
+		title = "Volume Fraction (Low Density)",
 	)
 	
-	df = new_df_high
+	df = new_df_low_vf
 	sc1 = scatter!(
 		df[!, :gt_mass_large_inserts], df[!, :predicted_mass_large_inserts]
 	)
@@ -739,17 +1108,44 @@ function accuracy()
 		df[!, :gt_mass_small_inserts], df[!, :predicted_mass_small_inserts], color=:red
 	)
 	ln1 = lines!([-1000, 1000], [-1000, 1000])
-	ln2 = lines!(collect(1:1000), pred_1_high, linestyle=:dashdot)
-	create_textbox(f[2, 1], co_1_high, r_squared_1_high, rms_values_1_high)
+	ln2 = lines!(collect(1:1000), pred_1_low_vf, linestyle=:dashdot)
+	create_textbox(f[2, 1], co_1_low_vf, r_squared_1_low_vf, rms_values_1_low_vf)
 	
-	xlims!(ax, low=-50, high=250)
-	ylims!(ax, low=-50, high=250)
+	xlims!(ax, low=-5, high=25)
+	ylims!(ax, low=-5, high=25)
+
+
+	ax = Axis(
+		f[3, 1],
+		xticks = collect(-5:10:25),
+		yticks = collect(-5:10:25),
+		xlabel = "Known Mass (mg)",
+		ylabel = "Calculated Mass (mg)",
+		title = "Agatston (Low Density)",
+	)
+	
+	df = new_df_low_a
+	sc1 = scatter!(
+		df[!, :gt_mass_large_inserts], df[!, :predicted_mass_large_inserts]
+	)
+	sc2 = scatter!(
+		df[!, :gt_mass_medium_inserts], df[!, :predicted_mass_medium_inserts]
+	)
+	sc3 = scatter!(
+		df[!, :gt_mass_small_inserts], df[!, :predicted_mass_small_inserts], color=:red
+	)
+	ln1 = lines!([-1000, 1000], [-1000, 1000])
+	ln2 = lines!(collect(1:1000), pred_1_low_a, linestyle=:dashdot)
+	create_textbox(f[3, 1], co_1_low_a, r_squared_1_low_a, rms_values_1_low_a)
+	
+	xlims!(ax, low=-5, high=25)
+	ylims!(ax, low=-5, high=25)
 
 	#-- LABELS --##
-	f[1:2, 2] = Legend(f, [sc1, sc2, sc3, ln1, ln2], ["Large Inserts", "Medium Inserts", "Small Inserts", "Unity", "Fitted Line"], framevisible = false)
+	f[2, 2] = Legend(f, [sc1, sc2, sc3, ln1, ln2], ["Large Inserts", "Medium Inserts", "Small Inserts", "Unity", "Fitted Line"], framevisible = false)
 
 	
-	for (label, layout) in zip([["A"], ["B"]], [f[1,1], f[2, 1]])
+	for (label, layout) in zip([["A"], ["B"], ["C"]], [f[1,1], f[2, 1], f[3, 1]])
 	    Label(layout[1, 1, TopLeft()], label,
 	        fontsize = 25,
 	        padding = (0, 60, 25, 0),
@@ -759,7 +1155,133 @@ function accuracy()
 end
 
 # ╔═╡ 41387ee8-07fa-4a54-bb1d-cbe78d56e08b
-with_theme(accuracy, medphys_theme)
+with_theme(accuracy_low, medphys_theme)
+
+# ╔═╡ a2261f23-10a8-4bc1-b5cb-c96da65e4b25
+md"""
+## High Density
+"""
+
+# ╔═╡ b78bace6-e275-4950-8608-35888c339e12
+md"""
+### Accuracy
+"""
+
+# ╔═╡ 066d0e67-a4db-4acc-b1c8-9fcb6fd76e88
+new_df_high_md = vcat(dfs_high_md[1:length(dfs_high_md)]...);
+
+# ╔═╡ 0263f7e5-e98d-44e1-8dd5-5d1d4380e296
+new_df_high_vf = vcat(dfs_high_vf[1:length(dfs_high_vf)]...);
+
+# ╔═╡ 4a40ce3f-40dd-4d9d-af16-2bebebe9cb68
+new_df_high_a = vcat(dfs_high_a[1:length(dfs_high_a)]...);
+
+# ╔═╡ 4cadf68d-5cce-4331-8e96-8757a42667ef
+co_1_high_md, r_squared_1_high_md, rms_values_1_high_md, pred_1_high_md = calculate_coefficients(new_df_high_md);
+
+# ╔═╡ 3a799ff0-593c-4754-8180-c79c8a9c40cf
+co_1_high_vf, r_squared_1_high_vf, rms_values_1_high_vf, pred_1_high_vf = calculate_coefficients(new_df_high_vf);
+
+# ╔═╡ 6a4c5316-459d-4791-ae18-c9c756c9145a
+co_1_high_a, r_squared_1_high_a, rms_values_1_high_a, pred_1_high_a = calculate_coefficients(new_df_high_a);
+
+# ╔═╡ 2eccc861-3b08-48a4-942a-e51feadb8e89
+function accuracy_high()
+	f = Figure()
+
+	ax = Axis(
+		f[1, 1],
+		xticks = collect(-50:100:250),
+		yticks = collect(-50:100:250),
+		xlabel = "Known Mass (mg)",
+		ylabel = "Calculated Mass (mg)",
+		title = "Material Decomposition (High Density)",
+	)
+	
+	df = new_df_high_md
+	sc1 = scatter!(
+		df[!, :gt_mass_large_inserts], df[!, :predicted_mass_large_inserts]
+	)
+	sc2 = scatter!(
+		df[!, :gt_mass_medium_inserts], df[!, :predicted_mass_medium_inserts]
+	)
+	sc3 = scatter!(
+		df[!, :gt_mass_small_inserts], df[!, :predicted_mass_small_inserts], color=:red
+	)
+	ln1 = lines!([-1000, 1000], [-1000, 1000])
+	ln2 = lines!(collect(1:1000), pred_1_high_md, linestyle=:dashdot)
+	create_textbox(f[1, 1], co_1_high_md, r_squared_1_high_md, rms_values_1_high_md)
+	
+	xlims!(ax, low=-50, high=250)
+	ylims!(ax, low=-50, high=250)
+
+	ax = Axis(
+		f[2, 1],
+		xticks = collect(-50:100:250),
+		yticks = collect(-50:100:250),
+		xlabel = "Known Mass (mg)",
+		ylabel = "Calculated Mass (mg)",
+		title = "Volume Fraction (High Density)",
+	)
+	
+	df = new_df_high_vf
+	sc1 = scatter!(
+		df[!, :gt_mass_large_inserts], df[!, :predicted_mass_large_inserts]
+	)
+	sc2 = scatter!(
+		df[!, :gt_mass_medium_inserts], df[!, :predicted_mass_medium_inserts]
+	)
+	sc3 = scatter!(
+		df[!, :gt_mass_small_inserts], df[!, :predicted_mass_small_inserts], color=:red
+	)
+	ln1 = lines!([-1000, 1000], [-1000, 1000])
+	ln2 = lines!(collect(1:1000), pred_1_high_vf, linestyle=:dashdot)
+	create_textbox(f[2, 1], co_1_high_vf, r_squared_1_high_vf, rms_values_1_high_vf)
+	
+	xlims!(ax, low=-50, high=250)
+	ylims!(ax, low=-50, high=250)
+
+	ax = Axis(
+		f[3, 1],
+		xticks = collect(-50:100:250),
+		yticks = collect(-50:100:250),
+		xlabel = "Known Mass (mg)",
+		ylabel = "Calculated Mass (mg)",
+		title = "Agatston (High Density)",
+	)
+	
+	df = new_df_high_a
+	sc1 = scatter!(
+		df[!, :gt_mass_large_inserts], df[!, :predicted_mass_large_inserts]
+	)
+	sc2 = scatter!(
+		df[!, :gt_mass_medium_inserts], df[!, :predicted_mass_medium_inserts]
+	)
+	sc3 = scatter!(
+		df[!, :gt_mass_small_inserts], df[!, :predicted_mass_small_inserts], color=:red
+	)
+	ln1 = lines!([-1000, 1000], [-1000, 1000])
+	ln2 = lines!(collect(1:1000), pred_1_high_a, linestyle=:dashdot)
+	create_textbox(f[3, 1], co_1_high_a, r_squared_1_high_a, rms_values_1_high_a)
+	
+	xlims!(ax, low=-50, high=250)
+	ylims!(ax, low=-50, high=250)
+
+	#-- LABELS --##
+	f[2, 2] = Legend(f, [sc1, sc2, sc3, ln1, ln2], ["Large Inserts", "Medium Inserts", "Small Inserts", "Unity", "Fitted Line"], framevisible = false)
+
+	
+	for (label, layout) in zip([["A"], ["B"], ["C"]], [f[1,1], f[2, 1], f[3, 1]])
+	    Label(layout[1, 1, TopLeft()], label,
+	        fontsize = 25,
+	        padding = (0, 60, 25, 0),
+	        halign = :right)
+	end
+	f
+end
+
+# ╔═╡ 323e72a2-6bd9-4398-9fe3-4d8cb4347979
+with_theme(accuracy_high, medphys_theme)
 
 # ╔═╡ Cell order:
 # ╠═e5248e4b-76bc-4a45-b38d-2c7f55f8d8f7
@@ -771,20 +1293,13 @@ with_theme(accuracy, medphys_theme)
 # ╠═1b568480-5467-4ffd-9099-de81066e407e
 # ╟─d1502f07-edc5-4baf-b7e9-808d37aeb6b3
 # ╠═668d1999-ce4e-4510-9dd4-84a26ab26dcf
+# ╠═b38de269-be3f-4e5d-adfb-43b1db438937
 # ╟─66025838-3122-4316-ba66-35b89e9d510c
 # ╠═00e313f8-1f2f-4e16-ae14-85c1f082c843
 # ╠═17ced35c-de57-4633-be0f-754ccfbfe180
 # ╟─c02cc808-ac3b-479a-b5a1-9abb36b93a03
 # ╠═b9753033-46ef-4509-8102-d4d294171257
-# ╠═aefb07e8-0023-45d0-ae74-c33a665c40a2
-# ╠═a38fee20-1c9c-41ce-991a-a78a5354474c
-# ╟─ee95b544-2e02-4de3-bd1c-019d8fc3cdd6
 # ╠═c30d5213-abcc-482d-887a-a63b54eed243
-# ╟─37181932-1398-4c45-9ff0-fb8d488ab562
-# ╠═84ab3b1d-cd05-43b1-b889-fdcf94529023
-# ╟─6760a907-7817-4692-abd3-2c1b66dc3a50
-# ╠═727de9ea-d78c-4c5f-9223-351a2fac45e3
-# ╠═38910d55-20d0-445e-98ea-c2f36aaa5255
 # ╟─905ccae5-0ee5-4242-b58a-25ef4bcbb8b9
 # ╠═2402b78f-580b-47eb-962f-707c90d6e74c
 # ╠═c0095d39-14f2-464d-8f55-ea1739a7b313
@@ -794,30 +1309,41 @@ with_theme(accuracy, medphys_theme)
 # ╠═06780785-7a4d-4e8f-bc3e-7163ac6374f4
 # ╟─4c2bf021-6a1d-4c8c-a3f4-7aee6c39c361
 # ╠═0029b07b-6c4f-49f3-841b-3e75e2f2a34f
+# ╟─e35e963d-1b3f-4d6e-8598-ea6c104935c2
 # ╠═42fd7e43-96fe-4c85-9807-9239cc66f10b
 # ╟─0666cb65-8c79-4766-a4f4-4d57797b98f3
 # ╟─feddd76b-bb09-4f05-894f-a89b1bcfbcff
-# ╟─124b7573-113c-4cdf-9a5c-e0cc9c78dfaa
+# ╠═2e882999-ded4-43f5-aa45-66f6438dc641
 # ╠═b63a9eee-7d14-4b4a-92b5-6b960aad90c1
-# ╟─6bc5781a-d025-46d8-bd70-19cb374d3c4e
-# ╠═390c73cc-8253-4547-afb3-c225b58fb2c4
-# ╟─07e1b431-84c6-4cfc-ad2b-edc54fdc59ca
-# ╠═565eade7-574f-473a-a9a4-6aeca2a812e6
-# ╠═da5d5ca7-5e6d-425c-823b-881c59ff8a3f
 # ╟─776b150d-ddbe-494a-9e53-632a33bb502b
-# ╠═7accb307-22f1-4035-951b-14bd04bcf5b2
-# ╠═3226a396-db02-4f50-ac67-9f8c57e7566b
+# ╠═3d45ea72-bc18-4651-8a0d-286294d1725e
+# ╠═7f0eb143-a2bf-4623-9d3e-9698f03f5311
 # ╟─397c56dc-79c0-4a18-8a04-fded2676c658
 # ╠═ccce7595-bc08-4855-819b-9dd3e9e88198
+# ╟─ca68557b-b343-4f1c-96cb-5cccb10636ad
 # ╠═044e548f-f81e-4cf8-a872-8e5440e74ddb
 # ╟─5ffcf3a8-e3d5-4093-8794-7eb133252d04
 # ╠═d394450d-825d-4071-9102-239c1dd79b98
 # ╠═a08b9637-f6d3-4671-9cfa-2a67b27f6585
 # ╠═4b9aa903-625f-4d4e-89de-aa175b33cbf5
 # ╠═c3f49d87-b42f-4e72-9f8f-02c8aa72af4f
+# ╟─1b6ce948-c725-46e8-a414-c64a7ca49239
+# ╟─4355944f-2562-48d1-bddc-82cb6e23472c
 # ╠═ca81d1ea-252a-4d43-aab8-4a08f95176dc
+# ╠═b0af4257-b1a9-448d-83ec-fd5494595aa2
+# ╠═9efebaa2-458a-4d5a-a44d-f01f1dddac18
 # ╠═ed6a9d9d-ce6a-4eab-955b-c6e676103603
-# ╠═066d0e67-a4db-4acc-b1c8-9fcb6fd76e88
-# ╠═4cadf68d-5cce-4331-8e96-8757a42667ef
+# ╠═073282e1-f842-41a0-98dc-c1b4bf8959b0
+# ╠═d3459d52-d9a0-492b-b540-342ea732486b
 # ╟─5c002c0a-10cf-4eb3-bac1-08ac25aab4cf
 # ╟─41387ee8-07fa-4a54-bb1d-cbe78d56e08b
+# ╟─a2261f23-10a8-4bc1-b5cb-c96da65e4b25
+# ╟─b78bace6-e275-4950-8608-35888c339e12
+# ╠═066d0e67-a4db-4acc-b1c8-9fcb6fd76e88
+# ╠═0263f7e5-e98d-44e1-8dd5-5d1d4380e296
+# ╠═4a40ce3f-40dd-4d9d-af16-2bebebe9cb68
+# ╠═4cadf68d-5cce-4331-8e96-8757a42667ef
+# ╠═3a799ff0-593c-4754-8180-c79c8a9c40cf
+# ╠═6a4c5316-459d-4791-ae18-c9c756c9145a
+# ╟─2eccc861-3b08-48a4-942a-e51feadb8e89
+# ╟─323e72a2-6bd9-4398-9fe3-4d8cb4347979
