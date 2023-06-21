@@ -220,8 +220,14 @@ md"""
 ## Check DICOM Validation
 """
 
+# ╔═╡ a6b0fd0f-b576-45f3-b05b-bc075f64b66d
+dcm_path = "/Users/daleblack/Library/CloudStorage/GoogleDrive-djblack@uci.edu/My Drive/dev/Molloilab/cac-dual-energy/data/dcms/val/52_59_73/large/120"
+
 # ╔═╡ 4f045d3d-d06b-424c-b0bf-332983c57c7c
-dcmdir_combined_val = dcmdir_parse(dirname(output_path3_val));
+dcmdir_combined_val = dcmdir_parse(dcm_path);
+
+# ╔═╡ 65de0193-2181-4394-bf01-e53c25ff896b
+dcmdir_combined_val
 
 # ╔═╡ 38323073-5134-47d4-a6a5-eb11729d7e51
 vol_combined_val = load_dcm_array(dcmdir_combined_val);
@@ -255,7 +261,9 @@ heatmap(transpose(vol_combined_val[:, :, z1]); colormap=:grays)
 # ╠═e10c7eea-dfcf-4269-976e-b2765a5713ec
 # ╠═40d56172-80af-4d7a-91f7-63bb3acf6a45
 # ╟─198cfcd1-e23a-4e58-a074-a9381f66d34b
+# ╠═a6b0fd0f-b576-45f3-b05b-bc075f64b66d
 # ╠═4f045d3d-d06b-424c-b0bf-332983c57c7c
+# ╠═65de0193-2181-4394-bf01-e53c25ff896b
 # ╠═38323073-5134-47d4-a6a5-eb11729d7e51
 # ╟─592521e1-ce60-404f-a8e3-0dd2b958030c
 # ╟─edc309c4-4110-477f-b375-07db0170e8a8
