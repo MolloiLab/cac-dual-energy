@@ -1347,16 +1347,6 @@ md"""
 ### Sensitivity & Specificity
 """
 
-# ╔═╡ 4bf76547-1e97-4429-8536-6dc620314aa5
-md"""
-False-positive expectations
-- 0.0 std => ~50% false-positive
-- 0.5 std => ~30% false-positive
-- 1.0 std => ~16% false-positive
-- 1.5 std => ~7% false-positive
-- 2.0 std => ~2% false-positive
-"""
-
 # ╔═╡ d8f08ec3-bddc-4846-bd55-381373a51301
 std_level = 1.5
 
@@ -1645,16 +1635,6 @@ with_theme(accuracy_high, medphys_theme)
 # ╔═╡ cd48d27b-3d24-499f-baec-7a5bfd3338e7
 md"""
 ### Sensitivity & Specificity
-"""
-
-# ╔═╡ 3bd855ea-b531-4afe-937f-0cb6457ee1f2
-md"""
-False-positive expectations
-- 0.0 std => ~50% false-positive
-- 0.5 std => ~30% false-positive
-- 1.0 std => ~16% false-positive
-- 1.5 std => ~7% false-positive
-- 2.0 std => ~2% false-positive
 """
 
 # ╔═╡ 30a6f69f-ca39-4a49-a37d-2f504e9f9d14
@@ -2004,7 +1984,7 @@ md"""
 """
 
 # ╔═╡ c7ab1789-59d0-4307-b09d-44a2f33cfb43
-function sensitivity_specificity_comb()
+function sensitivity_specificity_combined()
     f = Figure()
     colors = Makie.wong_colors()
 
@@ -2103,13 +2083,20 @@ function sensitivity_specificity_comb()
 		framevisible = false
 	)
 
+	Label(
+		f[1:2, 0],
+		"Percentage (%)",
+		fontsize = 12,
+		rotation = pi/2
+	)
+
 	save(plotsdir("sensitivity_specificity_combined.png"), f)
 
     return f
 end
 
 # ╔═╡ 85c7f5d9-fac4-4c36-97a6-3fa9d7f7ca0d
-sensitivity_specificity_comb()
+sensitivity_specificity_combined()
 
 # ╔═╡ Cell order:
 # ╠═e5248e4b-76bc-4a45-b38d-2c7f55f8d8f7
@@ -2166,7 +2153,6 @@ sensitivity_specificity_comb()
 # ╟─5c002c0a-10cf-4eb3-bac1-08ac25aab4cf
 # ╟─41387ee8-07fa-4a54-bb1d-cbe78d56e08b
 # ╟─3387dc7d-4c94-4bf2-a917-fa9a576b1661
-# ╟─4bf76547-1e97-4429-8536-6dc620314aa5
 # ╠═d8f08ec3-bddc-4846-bd55-381373a51301
 # ╟─a2bf8116-6ddb-456e-b0a6-2a1145ac3cc9
 # ╠═3e424011-f270-45d5-832d-117c2bd2f47c
@@ -2187,7 +2173,6 @@ sensitivity_specificity_comb()
 # ╟─2eccc861-3b08-48a4-942a-e51feadb8e89
 # ╟─323e72a2-6bd9-4398-9fe3-4d8cb4347979
 # ╟─cd48d27b-3d24-499f-baec-7a5bfd3338e7
-# ╟─3bd855ea-b531-4afe-937f-0cb6457ee1f2
 # ╟─30a6f69f-ca39-4a49-a37d-2f504e9f9d14
 # ╠═b8c2e2cc-10c8-4096-abf7-bd352d3e4cf0
 # ╠═0869a394-8065-4620-b337-49d01fa3202d
@@ -2202,4 +2187,4 @@ sensitivity_specificity_comb()
 # ╟─306e9179-23e3-4d06-87d0-71c91bf33367
 # ╟─3f672521-eda4-42f7-8afe-3e6ebd85cdd1
 # ╟─c7ab1789-59d0-4307-b09d-44a2f33cfb43
-# ╠═85c7f5d9-fac4-4c36-97a6-3fa9d7f7ca0d
+# ╟─85c7f5d9-fac4-4c36-97a6-3fa9d7f7ca0d
