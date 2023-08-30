@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.26
+# v0.19.27
 
 using Markdown
 using InteractiveUtils
@@ -20,6 +20,10 @@ using StatsBase: quantile!, rmsd
 # ╔═╡ 68ec4904-d908-4c1e-98e1-00ec7ba06f59
 # ╠═╡ show_logs = false
 using CalciumScoring
+
+# ╔═╡ 00c7bf5b-58b1-4184-8ddc-b97a81eca736
+# ╠═╡ show_logs = false
+using MaterialDecomposition
 
 # ╔═╡ d394450d-825d-4071-9102-239c1dd79b98
 using GLM, MLJBase
@@ -157,11 +161,14 @@ begin
 	for i in 1:length(densities_cal_low)
 		append!(
 			predicted_densities_low, 
-			score(calculated_intensities_low[i, 1], calculated_intensities_low[i, 2], ps_low, MaterialDecomposition()
+			quantify(calculated_intensities_low[i, 1], calculated_intensities_low[i, 2], ps_low
 			)
 		)
 	end
 end
+
+# ╔═╡ 896312ad-3284-487f-b549-bd34ac8b1f67
+calculated_intensities_low
 
 # ╔═╡ c0095d39-14f2-464d-8f55-ea1739a7b313
 df_low = DataFrame(
@@ -418,7 +425,7 @@ begin
 			calculated_intensities = hcat(means_80, means_135)
 			predicted_densities = zeros(size(means_135))
 			for i in eachindex(predicted_densities)
-				predicted_densities[i] = score(means_80[i], means_80[i], ps_low, MaterialDecomposition())
+				predicted_densities[i] = quantify(means_80[i], means_80[i], ps_low)
 			end
 
 			# Calculate background mass
@@ -746,7 +753,7 @@ begin
 	for i in 1:length(densities_cal_high)
 		append!(
 			predicted_densities_high, 
-			score(calculated_intensities_high[i, 1], calculated_intensities_high[i, 2], ps_high, MaterialDecomposition()
+			quantify(calculated_intensities_high[i, 1], calculated_intensities_high[i, 2], ps_high
 			)
 		)
 	end
@@ -947,7 +954,7 @@ begin
 			calculated_intensities = hcat(means_80, means_135)
 			predicted_densities = zeros(size(means_135))
 			for i in eachindex(predicted_densities)
-				predicted_densities[i] = score(means_80[i], means_80[i], ps_high, MaterialDecomposition())
+				predicted_densities[i] = quantify(means_80[i], means_80[i], ps_high)
 			end
 
 			# Calculate background mass
@@ -2104,6 +2111,7 @@ sensitivity_specificity_combined()
 # ╠═155ddbb8-f3a2-4db9-b256-7fd771785d66
 # ╠═90830c78-6f24-41a3-a2eb-1fce3756bcaf
 # ╠═68ec4904-d908-4c1e-98e1-00ec7ba06f59
+# ╠═00c7bf5b-58b1-4184-8ddc-b97a81eca736
 # ╠═29f9cf29-9437-42a6-8dab-89105273c187
 # ╠═1b568480-5467-4ffd-9099-de81066e407e
 # ╟─d1502f07-edc5-4baf-b7e9-808d37aeb6b3
@@ -2117,6 +2125,7 @@ sensitivity_specificity_combined()
 # ╠═c30d5213-abcc-482d-887a-a63b54eed243
 # ╟─905ccae5-0ee5-4242-b58a-25ef4bcbb8b9
 # ╠═2402b78f-580b-47eb-962f-707c90d6e74c
+# ╠═896312ad-3284-487f-b549-bd34ac8b1f67
 # ╠═c0095d39-14f2-464d-8f55-ea1739a7b313
 # ╟─cb0fc64e-8e36-4250-9ea6-427b5dccf27d
 # ╠═0c05f4a7-45ad-4dc3-8d1c-cfd4a48fce95
