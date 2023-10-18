@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.27
+# v0.19.26
 
 using Markdown
 using InteractiveUtils
@@ -51,9 +51,6 @@ begin
 	energies = [80, 120, 135]
 end;
 
-# ╔═╡ b38de269-be3f-4e5d-adfb-43b1db438937
-optimal_cal_low = [16, 25, 31, 45, 50, 75, 100, 150, 200, 250, 300, 350]
-
 # ╔═╡ 66025838-3122-4316-ba66-35b89e9d510c
 md"""
 ## Volume Fraction & Agatston Calibration
@@ -61,6 +58,12 @@ md"""
 
 # ╔═╡ 00e313f8-1f2f-4e16-ae14-85c1f082c843
 path = joinpath(datadir("dcms", "cal", "100", "30"), string(energies[2]))
+
+# ╔═╡ b832088f-9f9b-43c1-a677-a43fa6fd1588
+dcm_viz = load_dcm_array(dcmdir_parse(path));
+
+# ╔═╡ d8495fcd-56a2-4555-8aa7-e712883f8862
+heatmap(dcm_viz[:, :, 2], colormap = :grays)
 
 # ╔═╡ 17ced35c-de57-4633-be0f-754ccfbfe180
 begin
@@ -89,7 +92,13 @@ md"""
 """
 
 # ╔═╡ b9753033-46ef-4509-8102-d4d294171257
-densities_cal_all = [3, 6, 9, 10, 16, 25, 31, 45, 50, 75, 100, 150, 200, 250, 300, 350, 400, 450, 500, 550, 600, 650, 700, 750, 800] # calcium densities
+#densities_cal_all = [3, 6, 9, 10, 16, 25, 31, 45, 50, 75, 100, 150, 200, 250, 300, 350, 400, 450, 500, 550, 600, 650, 700, 750, 800] # calcium densities
+
+densities_cal_all = [3, 50,100,200,300,400,500,600]
+
+# ╔═╡ b38de269-be3f-4e5d-adfb-43b1db438937
+#optimal_cal_low = [16, 25, 31, 45, 50, 75, 100, 150, 200, 250, 300, 350]
+optimal_cal_low = densities_cal_all
 
 # ╔═╡ c30d5213-abcc-482d-887a-a63b54eed243
 begin
@@ -680,7 +689,8 @@ md"""
 """
 
 # ╔═╡ 2e882999-ded4-43f5-aa45-66f6438dc641
-optimal_cal_high = [10, 25, 45, 75, 150, 250, 350, 450, 550, 650]
+# optimal_cal_high = [10, 25, 45, 75, 150, 250, 350, 450, 550, 650]
+optimal_cal_high = densities_cal_all
 
 # ╔═╡ b63a9eee-7d14-4b4a-92b5-6b960aad90c1
 begin
@@ -2119,6 +2129,8 @@ sensitivity_specificity_combined()
 # ╠═b38de269-be3f-4e5d-adfb-43b1db438937
 # ╟─66025838-3122-4316-ba66-35b89e9d510c
 # ╠═00e313f8-1f2f-4e16-ae14-85c1f082c843
+# ╠═b832088f-9f9b-43c1-a677-a43fa6fd1588
+# ╠═d8495fcd-56a2-4555-8aa7-e712883f8862
 # ╠═17ced35c-de57-4633-be0f-754ccfbfe180
 # ╟─c02cc808-ac3b-479a-b5a1-9abb36b93a03
 # ╠═b9753033-46ef-4509-8102-d4d294171257
@@ -2160,7 +2172,7 @@ sensitivity_specificity_combined()
 # ╠═073282e1-f842-41a0-98dc-c1b4bf8959b0
 # ╠═d3459d52-d9a0-492b-b540-342ea732486b
 # ╟─5c002c0a-10cf-4eb3-bac1-08ac25aab4cf
-# ╟─41387ee8-07fa-4a54-bb1d-cbe78d56e08b
+# ╠═41387ee8-07fa-4a54-bb1d-cbe78d56e08b
 # ╟─3387dc7d-4c94-4bf2-a917-fa9a576b1661
 # ╠═d8f08ec3-bddc-4846-bd55-381373a51301
 # ╟─a2bf8116-6ddb-456e-b0a6-2a1145ac3cc9

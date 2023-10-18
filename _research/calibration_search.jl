@@ -14,6 +14,9 @@ macro bind(def, element)
     end
 end
 
+# ╔═╡ e6da806c-6b95-464b-935c-5464fb8bce48
+import Pkg; Pkg.add("OrderedCollections")
+
 # ╔═╡ 47c381ac-37d0-4566-8602-66d707ec8a91
 using DrWatson
 
@@ -24,6 +27,9 @@ using DrWatson
 # ╔═╡ b1eb1bd7-9e57-4228-b5e2-d45d2858bf56
 using PlutoUI, CairoMakie, Statistics, CSV, DataFrames, DICOM, CSVFiles
 
+# ╔═╡ 3994b2c3-0a09-45e2-bc81-51b8a48049ed
+using OrderedCollections
+
 # ╔═╡ e06ebcc3-5cd7-49f5-80ea-dc202b39e16f
 using StatsBase: quantile!, rmsd
 
@@ -33,17 +39,14 @@ using CalciumScoring
 # ╔═╡ c952efc2-42a2-4d6e-9632-0584a91c9fd6
 using GLM, MLJBase
 
+# ╔═╡ 5f9cca1a-0478-409e-ba14-5af1a32483fc
+include(srcdir("masks.jl")); include(srcdir("dicom_utils.jl"));
+
 # ╔═╡ eb662ecd-1b18-4f3e-8690-e62f10090148
 include(srcdir("helper_functions.jl"));
 
 # ╔═╡ 4a64afb2-b424-4519-a4b5-cc0ea4f9932a
 include(srcdir("plot_utils.jl"));
-
-# ╔═╡ 3994b2c3-0a09-45e2-bc81-51b8a48049ed
-using OrderedCollections
-
-# ╔═╡ 5f9cca1a-0478-409e-ba14-5af1a32483fc
-include(srcdir("masks.jl")); include(srcdir("dicom_utils.jl"));
 
 # ╔═╡ 9e42e006-e13d-477f-a6fa-8fc93f181160
 TableOfContents()
@@ -1488,6 +1491,7 @@ with_theme(accuracy_high, medphys_theme)
 # ╠═47c381ac-37d0-4566-8602-66d707ec8a91
 # ╠═4fa4a2f9-b837-42bd-80e0-ded9b38c5623
 # ╠═b1eb1bd7-9e57-4228-b5e2-d45d2858bf56
+# ╠═e6da806c-6b95-464b-935c-5464fb8bce48
 # ╠═3994b2c3-0a09-45e2-bc81-51b8a48049ed
 # ╠═e06ebcc3-5cd7-49f5-80ea-dc202b39e16f
 # ╠═33b118ab-c37a-4875-bc83-2336d4061b7c
