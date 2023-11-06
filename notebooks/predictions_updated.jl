@@ -4,84 +4,69 @@
 using Markdown
 using InteractiveUtils
 
-# ╔═╡ e5248e4b-76bc-4a45-b38d-2c7f55f8d8f7
+# ╔═╡ 024de588-307b-452d-812d-3a58b9265089
 using DrWatson
 
-# ╔═╡ 67c7c5e9-e181-4560-b77a-50e9d7977348
-# ╠═╡ show_logs = false
+# ╔═╡ 3c5e1804-23dd-4629-baa5-5106aacd74a6
 @quickactivate "cac-dual-energy"
 
-# ╔═╡ 155ddbb8-f3a2-4db9-b256-7fd771785d66
+# ╔═╡ 0c4ba5cc-8e40-40c6-b596-785973bbc74e
 using PlutoUI, CairoMakie, Statistics, CSV, DataFrames, DICOM, CSVFiles, Printf
 
-# ╔═╡ 90830c78-6f24-41a3-a2eb-1fce3756bcaf
+# ╔═╡ a9c366d0-e90a-406c-b970-3d5a76bc7973
 using StatsBase: quantile!, rmsd
 
-# ╔═╡ 68ec4904-d908-4c1e-98e1-00ec7ba06f59
-# ╠═╡ show_logs = false
+# ╔═╡ 11835515-0d70-4a4b-b7f0-742153e4c8e2
 using CalciumScoring
 
-# ╔═╡ 00c7bf5b-58b1-4184-8ddc-b97a81eca736
-# ╠═╡ show_logs = false
+# ╔═╡ 65212870-6665-4ce8-b1f6-f80f9304bf04
 using MaterialDecomposition
 
-# ╔═╡ d394450d-825d-4071-9102-239c1dd79b98
+# ╔═╡ d7e045fc-ac9c-4f53-836e-aedcadad1fbe
 using GLM, MLJBase
 
-# ╔═╡ 29f9cf29-9437-42a6-8dab-89105273c187
+# ╔═╡ f1708909-5df5-477b-9657-82029aab0a50
 include(srcdir("masks.jl")); include(srcdir("dicom_utils.jl"));
 
-# ╔═╡ a08b9637-f6d3-4671-9cfa-2a67b27f6585
+# ╔═╡ 95509262-a9a1-41b6-972d-e7dcf7bb2371
 include(srcdir("helper_functions.jl"));
 
-# ╔═╡ 4b9aa903-625f-4d4e-89de-aa175b33cbf5
+# ╔═╡ b98db832-06bd-492f-8ca4-38e298086c8a
 include(srcdir("plot_utils.jl"));
 
-# ╔═╡ 1b568480-5467-4ffd-9099-de81066e407e
+# ╔═╡ 937d6c6d-80c7-4bfc-9c61-9d1830c84b66
 TableOfContents()
 
-# ╔═╡ d1502f07-edc5-4baf-b7e9-808d37aeb6b3
+# ╔═╡ c69df360-2e83-4d92-89a5-beaa1a20a1c5
 md"""
 # Low Density
 """
 
-# ╔═╡ 668d1999-ce4e-4510-9dd4-84a26ab26dcf
+# ╔═╡ 2a8133c5-d7c0-4f85-8091-9a6c9d2aceb4
 begin
 	sizes_cal = [30]
 	energies = [80, 120, 135]
 end;
 
-# ╔═╡ 66025838-3122-4316-ba66-35b89e9d510c
+# ╔═╡ 0a82a5ee-d54d-41fe-9cd3-336d8d9ca8e9
 md"""
 ## Volume Fraction & Agatston Calibration
 """
 
-# ╔═╡ 00e313f8-1f2f-4e16-ae14-85c1f082c843
+# ╔═╡ ebec3a75-49ff-4ab0-b738-59cac17a001f
 path = joinpath(datadir("dcms", "cal", "100", "30"), string(energies[2]))
 
-# ╔═╡ b832088f-9f9b-43c1-a677-a43fa6fd1588
+# ╔═╡ 3f9c0eb2-b727-4b9a-91eb-f9c482d6809f
 dcm_viz = load_dcm_array(dcmdir_parse(path));
 
-# ╔═╡ d8495fcd-56a2-4555-8aa7-e712883f8862
+# ╔═╡ d3e09d9a-187f-4db0-a8c5-5fc0dc408d25
 heatmap(dcm_viz[:, :, 2], colormap = :grays)
 
-# ╔═╡ 17ced35c-de57-4633-be0f-754ccfbfe180
+# ╔═╡ f1575684-58ac-4606-92ef-993377c8309d
 begin
 	dcm_cal = dcmdir_parse(path)
 	dcm_array_cal = load_dcm_array(dcm_cal)
 	offset = 5
-
-	center_insert_bkg, center_insert_bkg2 = 250, 318
-	bkg_rod = zeros(offset*2 + 1, offset*2 + 1, size(dcm_array_cal, 3))
-	
-	for z in axes(dcm_array_cal, 3)
-		rows, cols, depth = size(dcm_array_cal)
-		half_row, half_col = center_insert_bkg, center_insert_bkg2
-		row_range = half_row-offset:half_row+offset
-		col_range = half_col-offset:half_col+offset	
-		bkg_rod[:, :, z] .= dcm_array_cal[row_range, col_range, z];
-
-	end
 
 	center_insert1, center_insert2 = 187, 318
 	calibration_rod = zeros(offset*2 + 1, offset*2 + 1, size(dcm_array_cal, 3))
@@ -98,77 +83,124 @@ begin
 
 	hu_calcium_100 = mean(calibration_rod)
 	ρ_calcium_100 = 0.100 # mg/cm^3
-	hu_background = mean(bkg_rod)
 end
 
-# ╔═╡ 48ec2518-1644-4db9-bd86-fd32a77ca9f6
-hu_calcium_100
-
-# ╔═╡ c02cc808-ac3b-479a-b5a1-9abb36b93a03
+# ╔═╡ 82712845-c2ba-49f1-a8ad-9127cbc321b2
 md"""
 ## Calibration
 """
 
-# ╔═╡ b9753033-46ef-4509-8102-d4d294171257
-#densities_cal_all = [3, 6, 9, 10, 16, 25, 31, 45, 50, 75, 100, 150, 200, 250, 300, 350, 400, 450, 500, 550, 600, 650, 700, 750, 800] # calcium densities
+# ╔═╡ a1289bbb-21b8-471e-9116-86f04f53c085
+#second best option i found:
+#densities_cal_all = [3, 6,10,50,100,200,300,400,500,600]
 
-densities_cal_all = [3,50,100,200,300,400,500,600]
+#Worse option:
+#densities_cal_all = [3,25,50,75,100,200,300,400,500,600]
 
-# ╔═╡ b38de269-be3f-4e5d-adfb-43b1db438937
-#optimal_cal_low = [16, 25, 31, 45, 50, 75, 100, 150, 200, 250, 300, 350]
+#Original points work well now.
+densities_cal_all = [0,50,100,200,300,400,500,600]
+
+# ╔═╡ a5935d6a-c825-4f8e-b559-c22104bb151e
 optimal_cal_low = densities_cal_all
 
-# ╔═╡ c30d5213-abcc-482d-887a-a63b54eed243
+# ╔═╡ ea5853a5-5cd8-4017-824c-c1a9c945b357
 begin
 	densities_cal_low = optimal_cal_low
 	
 	# Low Energy
 	means_80_low = Dict(:density => densities_cal_low, :means => zeros(length(densities_cal_low)))
 	for (i, density) in enumerate(densities_cal_low)
-		for _size in sizes_cal
-			path = joinpath(datadir("dcms", "cal"), string(density), string(_size), string(energies[1]))
+		
+		
+		if i ==1 #for background
+			path = joinpath(datadir("dcms", "cal", "100", "30"), string(energies[1]))
 			dcm = dcmdir_parse(path)
 			dcm_array = load_dcm_array(dcm)
-		
-			center_insert1, center_insert2 = 187, 318
 			offset = 5
-			calibration_rod = zeros(offset*2 + 1, offset*2 + 1, size(dcm_array, 3))
-			
+			bkg_rod = zeros(offset*2 + 1, offset*2 + 1, size(dcm_array, 3))
+			center_insert_bkg, center_insert_bkg2 = 250, 318
+
 			for z in axes(dcm_array, 3)
-				rows, cols, depth = size(dcm_array)
-				half_row, half_col = center_insert1, center_insert2
-				row_range = half_row-offset:half_row+offset
-				col_range = half_col-offset:half_col+offset	
-				calibration_rod[:, :, z] .= dcm_array[row_range, col_range, z];
+					rows, cols, depth = size(dcm_array)
+					half_row, half_col = center_insert_bkg, center_insert_bkg2
+					row_range = half_row-offset:half_row+offset
+					col_range = half_col-offset:half_col+offset	
+					calibration_rod[:, :, z] .= dcm_array[row_range, col_range, z];
 			end
-		
+			
 			means_80_low[:means][i] = mean(calibration_rod)
+
+		else
+			for _size in sizes_cal
+				path = joinpath(datadir("dcms", "cal"), string(density), string(_size), string(energies[1]))
+				dcm = dcmdir_parse(path)
+				dcm_array = load_dcm_array(dcm)
+			
+				center_insert1, center_insert2 = 187, 318
+				offset = 5
+				calibration_rod = zeros(offset*2 + 1, offset*2 + 1, size(dcm_array, 3))
+				
+				for z in axes(dcm_array, 3)
+					rows, cols, depth = size(dcm_array)
+					half_row, half_col = center_insert1, center_insert2
+					row_range = half_row-offset:half_row+offset
+					col_range = half_col-offset:half_col+offset	
+					calibration_rod[:, :, z] .= dcm_array[row_range, col_range, z];
+				end
+			
+				means_80_low[:means][i] = mean(calibration_rod)
+			end
 		end
+
+			
+			
 	end
 
 	# High Energy
 	means_135_low = Dict(:density => densities_cal_low, :means => zeros(length(densities_cal_low)))
 	for (i, density) in enumerate(densities_cal_low)
-		for _size in sizes_cal
-			path = joinpath(datadir("dcms", "cal"), string(density), string(_size), string(energies[3]))
+
+
+		if i ==1 #for background
+			path = joinpath(datadir("dcms", "cal", "50", "30"), string(energies[3]))
 			dcm = dcmdir_parse(path)
 			dcm_array = load_dcm_array(dcm)
-		
-			center_insert1, center_insert2 = 187, 318
-			
 			offset = 5
-			calibration_rod = zeros(offset*2 + 1, offset*2 + 1, size(dcm_array, 3))
-			
+			bkg_rod = zeros(offset*2 + 1, offset*2 + 1, size(dcm_array, 3))
+			center_insert_bkg, center_insert_bkg2 = 250, 318
+
 			for z in axes(dcm_array, 3)
-				rows, cols, depth = size(dcm_array)
-				half_row, half_col = center_insert1, center_insert2
-				row_range = half_row-offset:half_row+offset
-				col_range = half_col-offset:half_col+offset	
-				calibration_rod[:, :, z] .= dcm_array[row_range, col_range, z];
+					rows, cols, depth = size(dcm_array)
+					half_row, half_col = center_insert_bkg, center_insert_bkg2
+					row_range = half_row-offset:half_row+offset
+					col_range = half_col-offset:half_col+offset	
+					calibration_rod[:, :, z] .= dcm_array[row_range, col_range, z];
 			end
-		
-			means_135_low[:means][i] = mean(calibration_rod)
-		end
+			
+				means_135_low[:means][i] = mean(calibration_rod)
+
+		else 
+			for _size in sizes_cal
+				path = joinpath(datadir("dcms", "cal"), string(density), string(_size), string(energies[3]))
+				dcm = dcmdir_parse(path)
+				dcm_array = load_dcm_array(dcm)
+			
+				center_insert1, center_insert2 = 187, 318
+				
+				offset = 5
+				calibration_rod = zeros(offset*2 + 1, offset*2 + 1, size(dcm_array, 3))
+				
+				for z in axes(dcm_array, 3)
+					rows, cols, depth = size(dcm_array)
+					half_row, half_col = center_insert1, center_insert2
+					row_range = half_row-offset:half_row+offset
+					col_range = half_col-offset:half_col+offset	
+					calibration_rod[:, :, z] .= dcm_array[row_range, col_range, z];
+				end
+			
+				means_135_low[:means][i] = mean(calibration_rod)
+			end
+		end 
 	end
 
 	# Fit Parameters
@@ -176,12 +208,12 @@ begin
 	ps_low = fit_calibration(calculated_intensities_low, densities_cal_low)
 end
 
-# ╔═╡ 905ccae5-0ee5-4242-b58a-25ef4bcbb8b9
+# ╔═╡ 66d07988-d98a-4bab-8243-33d6f4485cf0
 md"""
 ### Check Results
 """
 
-# ╔═╡ 2402b78f-580b-47eb-962f-707c90d6e74c
+# ╔═╡ c93775d8-3422-4ad1-9f40-6d57477d8425
 begin
 	predicted_densities_low = []
 	
@@ -194,44 +226,44 @@ begin
 	end
 end
 
-# ╔═╡ 896312ad-3284-487f-b549-bd34ac8b1f67
+# ╔═╡ 636abeda-6c10-4d21-ae08-10e1274b77a1
 calculated_intensities_low
 
-# ╔═╡ c0095d39-14f2-464d-8f55-ea1739a7b313
+# ╔═╡ d0b1613e-890e-417d-b7eb-57b0bc9fafe2
 df_low = DataFrame(
 	densities = densities_cal_low,
 	predicted_densities = predicted_densities_low
 )
 
-# ╔═╡ cb0fc64e-8e36-4250-9ea6-427b5dccf27d
+# ╔═╡ 93679b54-9364-4579-8767-53e36499b6d8
 md"""
 ## Validation
 """
 
-# ╔═╡ 0c05f4a7-45ad-4dc3-8d1c-cfd4a48fce95
+# ╔═╡ 853d895d-91d4-487a-a927-e74424bba9ed
 densities_val_all = [
 	"15_18_22"
 	"26_29_36"
 	"52_59_73"
 	"110_210_310"
 	"410_610_780"
-] 
+]
 
-# ╔═╡ af661a05-e9ec-4b0b-8d7e-0ce39af016ec
+# ╔═╡ d6a65460-51e0-4b18-83e5-1844f2566cc6
 begin
 	densities_val_low = densities_val_all[1:3]
 	sizes_val = ["small", "medium", "large"]
 end;
 
-# ╔═╡ 06780785-7a4d-4e8f-bc3e-7163ac6374f4
+# ╔═╡ e45adb9a-0519-4063-b8ae-2cb7e1005397
 energies_val = [80, 120, 135]
 
-# ╔═╡ 4c2bf021-6a1d-4c8c-a3f4-7aee6c39c361
+# ╔═╡ 8a774374-ecce-40d7-8b64-609124242d1f
 md"""
 ### Load masks
 """
 
-# ╔═╡ 0029b07b-6c4f-49f3-841b-3e75e2f2a34f
+# ╔═╡ 38bf3544-c7a4-46d6-9df2-6fe269b24cb8
 begin
 	# Load masks
 	masks_large = Dict(
@@ -271,12 +303,12 @@ begin
 	)
 end;
 
-# ╔═╡ e35e963d-1b3f-4d6e-8598-ea6c104935c2
+# ╔═╡ 5588545b-f070-4e02-ac12-3e1b5a150d88
 md"""
 ### Predict
 """
 
-# ╔═╡ 42fd7e43-96fe-4c85-9807-9239cc66f10b
+# ╔═╡ 20a32f24-2c4b-4308-a6e1-802a72322fa7
 begin
 	dfs_low_md = []
 	dfs_low_vf = []
@@ -696,71 +728,112 @@ begin
 	end
 end
 
-# ╔═╡ 0666cb65-8c79-4766-a4f4-4d57797b98f3
+# ╔═╡ c2db3887-3be1-499a-ba8c-d0a9f3f3f645
 md"""
 # High Density
 """
 
-# ╔═╡ feddd76b-bb09-4f05-894f-a89b1bcfbcff
+# ╔═╡ 7cfd0261-208d-41b6-b356-63d9e02ca13a
 md"""
 ## Calibration
 """
 
-# ╔═╡ 2e882999-ded4-43f5-aa45-66f6438dc641
+# ╔═╡ cac42faf-836c-42a2-bed2-f0bba2a13be0
 # optimal_cal_high = [10, 25, 45, 75, 150, 250, 350, 450, 550, 650]
 optimal_cal_high = densities_cal_all
 
-# ╔═╡ b63a9eee-7d14-4b4a-92b5-6b960aad90c1
+# ╔═╡ bd61d48e-886b-40c6-a54a-76468c52cd4e
 begin
 	densities_cal_high = optimal_cal_high
 
 	# Low Energy
 	means_80_high = Dict(:density => densities_cal_high, :means => zeros(length(densities_cal_high)))
 	for (i, density) in enumerate(densities_cal_high)
-		for _size in sizes_cal
-			path = joinpath(datadir("dcms", "cal"), string(density), string(_size), string(energies[1]))
+		if i ==1 #for background
+			path = joinpath(datadir("dcms", "cal", "100", "30"), string(energies[1]))
 			dcm = dcmdir_parse(path)
 			dcm_array = load_dcm_array(dcm)
-		
-			center_insert1, center_insert2 = 187, 318
 			offset = 5
-			calibration_rod = zeros(offset*2 + 1, offset*2 + 1, size(dcm_array, 3))
-			
+			bkg_rod = zeros(offset*2 + 1, offset*2 + 1, size(dcm_array, 3))
+			center_insert_bkg, center_insert_bkg2 = 250, 318
+
 			for z in axes(dcm_array, 3)
-				rows, cols, depth = size(dcm_array)
-				half_row, half_col = center_insert1, center_insert2
-				row_range = half_row-offset:half_row+offset
-				col_range = half_col-offset:half_col+offset	
-				calibration_rod[:, :, z] .= dcm_array[row_range, col_range, z];
+					rows, cols, depth = size(dcm_array)
+					half_row, half_col = center_insert_bkg, center_insert_bkg2
+					row_range = half_row-offset:half_row+offset
+					col_range = half_col-offset:half_col+offset	
+					calibration_rod[:, :, z] .= dcm_array[row_range, col_range, z];
 			end
-		
+			
 			means_80_high[:means][i] = mean(calibration_rod)
-		end
+
+		else
+			for _size in sizes_cal
+				path = joinpath(datadir("dcms", "cal"), string(density), string(_size), string(energies[1]))
+				dcm = dcmdir_parse(path)
+				dcm_array = load_dcm_array(dcm)
+			
+				center_insert1, center_insert2 = 187, 318
+				offset = 5
+				calibration_rod = zeros(offset*2 + 1, offset*2 + 1, size(dcm_array, 3))
+				
+				for z in axes(dcm_array, 3)
+					rows, cols, depth = size(dcm_array)
+					half_row, half_col = center_insert1, center_insert2
+					row_range = half_row-offset:half_row+offset
+					col_range = half_col-offset:half_col+offset	
+					calibration_rod[:, :, z] .= dcm_array[row_range, col_range, z];
+				end
+			
+				means_80_high[:means][i] = mean(calibration_rod)
+			end
+		end 
 	end
 
 	# High energy	
 	means_135_high = Dict(:density => densities_cal_high, :means => zeros(length(densities_cal_high)))
 	for (i, density) in enumerate(densities_cal_high)
-		for _size in sizes_cal
-			path = joinpath(datadir("dcms", "cal"), string(density), string(_size), string(energies[3]))
+		
+		if i ==1 #for background
+			path = joinpath(datadir("dcms", "cal", "200", "30"), string(energies[3]))
 			dcm = dcmdir_parse(path)
 			dcm_array = load_dcm_array(dcm)
-		
-			center_insert1, center_insert2 = 187, 318
-			
 			offset = 5
-			calibration_rod = zeros(offset*2 + 1, offset*2 + 1, size(dcm_array, 3))
-			
+			bkg_rod = zeros(offset*2 + 1, offset*2 + 1, size(dcm_array, 3))
+			center_insert_bkg, center_insert_bkg2 = 250, 318
+
 			for z in axes(dcm_array, 3)
-				rows, cols, depth = size(dcm_array)
-				half_row, half_col = center_insert1, center_insert2
-				row_range = half_row-offset:half_row+offset
-				col_range = half_col-offset:half_col+offset	
-				calibration_rod[:, :, z] .= dcm_array[row_range, col_range, z];
+					rows, cols, depth = size(dcm_array)
+					half_row, half_col = center_insert_bkg, center_insert_bkg2
+					row_range = half_row-offset:half_row+offset
+					col_range = half_col-offset:half_col+offset	
+					calibration_rod[:, :, z] .= dcm_array[row_range, col_range, z];
 			end
-		
+			
 			means_135_high[:means][i] = mean(calibration_rod)
-		end
+
+		else
+			for _size in sizes_cal
+				path = joinpath(datadir("dcms", "cal"), string(density), string(_size), string(energies[3]))
+				dcm = dcmdir_parse(path)
+				dcm_array = load_dcm_array(dcm)
+			
+				center_insert1, center_insert2 = 187, 318
+				
+				offset = 5
+				calibration_rod = zeros(offset*2 + 1, offset*2 + 1, size(dcm_array, 3))
+				
+				for z in axes(dcm_array, 3)
+					rows, cols, depth = size(dcm_array)
+					half_row, half_col = center_insert1, center_insert2
+					row_range = half_row-offset:half_row+offset
+					col_range = half_col-offset:half_col+offset	
+					calibration_rod[:, :, z] .= dcm_array[row_range, col_range, z];
+				end
+			
+				means_135_high[:means][i] = mean(calibration_rod)
+			end
+		end 
 	end
 
 	# Fit Parameters
@@ -769,12 +842,12 @@ begin
 	ps_high = fit_calibration(calculated_intensities_high, densities_cal_high)
 end
 
-# ╔═╡ 776b150d-ddbe-494a-9e53-632a33bb502b
+# ╔═╡ 6c01fb2c-c8cf-4484-8509-3fc540c038a0
 md"""
 ### Check Results
 """
 
-# ╔═╡ 3d45ea72-bc18-4651-8a0d-286294d1725e
+# ╔═╡ b410ca06-2fe0-4671-925e-bbdaf9786849
 begin
 	predicted_densities_high = []
 	
@@ -787,26 +860,26 @@ begin
 	end
 end
 
-# ╔═╡ 7f0eb143-a2bf-4623-9d3e-9698f03f5311
+# ╔═╡ e7e5385b-4016-4bb3-8fd8-c203f8e5f8d8
 df_high = DataFrame(
 	densities = densities_cal_high,
 	predicted_densities = predicted_densities_high,
 )
 
-# ╔═╡ 397c56dc-79c0-4a18-8a04-fded2676c658
+# ╔═╡ d01812f8-e0ec-4b2d-9992-e7db2610d4fe
 md"""
 ## Validation
 """
 
-# ╔═╡ ccce7595-bc08-4855-819b-9dd3e9e88198
+# ╔═╡ 397e2b5a-8d37-4398-b92b-678b4ba080ee
 densities_val_high = densities_val_all[length(densities_val_low):end];
 
-# ╔═╡ ca68557b-b343-4f1c-96cb-5cccb10636ad
+# ╔═╡ e0c01bd6-0cec-408d-b534-cf36cb5bd78a
 md"""
 ### Predict
 """
 
-# ╔═╡ 044e548f-f81e-4cf8-a872-8e5440e74ddb
+# ╔═╡ 6952fc87-c733-4e67-b1aa-ec9dd46ebe3d
 begin
 	dfs_high_md = []
 	dfs_high_vf = []
@@ -1226,12 +1299,12 @@ begin
 	end
 end
 
-# ╔═╡ 5ffcf3a8-e3d5-4093-8794-7eb133252d04
+# ╔═╡ 1a70a6e7-108d-477e-b1a5-7e755cbc0619
 md"""
 # Analyze
 """
 
-# ╔═╡ c3f49d87-b42f-4e72-9f8f-02c8aa72af4f
+# ╔═╡ 3baf66b0-5e25-43d2-9b53-6b2d35f268a7
 medphys_theme = Theme(
     Axis = (
         backgroundcolor = :white,
@@ -1249,35 +1322,35 @@ medphys_theme = Theme(
 	)
 );
 
-# ╔═╡ 1b6ce948-c725-46e8-a414-c64a7ca49239
+# ╔═╡ c3919e4d-c474-4aeb-bdc8-76e139e1d8c2
 md"""
 ## Low Density
 """
 
-# ╔═╡ 4355944f-2562-48d1-bddc-82cb6e23472c
+# ╔═╡ fef76b74-ddfe-4578-9ccc-a8ff68b60137
 md"""
 ### Accuracy
 """
 
-# ╔═╡ ca81d1ea-252a-4d43-aab8-4a08f95176dc
+# ╔═╡ 6d84cb36-80cf-43af-b100-caab847b347a
 new_df_low_md = vcat(dfs_low_md[1:length(dfs_low_md)]...);
 
-# ╔═╡ b0af4257-b1a9-448d-83ec-fd5494595aa2
+# ╔═╡ fd222d84-8b90-418e-b405-929557aaff8a
 new_df_low_vf = vcat(dfs_low_vf[1:length(dfs_low_vf)]...);
 
-# ╔═╡ 9efebaa2-458a-4d5a-a44d-f01f1dddac18
+# ╔═╡ a32f1676-cb1c-4b57-99a0-b6f7b542dbaf
 new_df_low_a = vcat(dfs_low_a[1:length(dfs_low_a)]...);
 
-# ╔═╡ ed6a9d9d-ce6a-4eab-955b-c6e676103603
+# ╔═╡ c9f166c4-1269-42c5-85fb-21e0786a2ec5
 co_1_low_md, r_squared_1_low_md, rms_values_1_low_md, pred_1_low_md = calculate_coefficients(new_df_low_md);
 
-# ╔═╡ 073282e1-f842-41a0-98dc-c1b4bf8959b0
+# ╔═╡ 2f742443-0dd4-4d25-90ff-4c7941cba0a2
 co_1_low_vf, r_squared_1_low_vf, rms_values_1_low_vf, pred_1_low_vf = calculate_coefficients(new_df_low_vf);
 
-# ╔═╡ d3459d52-d9a0-492b-b540-342ea732486b
+# ╔═╡ 7b6def43-c729-4698-a752-9d37f182e816
 co_1_low_a, r_squared_1_low_a, rms_values_1_low_a, pred_1_low_a = calculate_coefficients(new_df_low_a);
 
-# ╔═╡ 5c002c0a-10cf-4eb3-bac1-08ac25aab4cf
+# ╔═╡ 1cb3b222-e86d-41a5-98f0-d4faa9363e87
 function accuracy_low()
 	f = Figure()
 
@@ -1374,23 +1447,23 @@ function accuracy_low()
 	f
 end
 
-# ╔═╡ 41387ee8-07fa-4a54-bb1d-cbe78d56e08b
+# ╔═╡ c23d6948-d28a-4c66-ae2d-78686082e5f3
 with_theme(accuracy_low, medphys_theme)
 
-# ╔═╡ 3387dc7d-4c94-4bf2-a917-fa9a576b1661
+# ╔═╡ 6fb4896c-a086-4ef1-bbb7-1f1603338b3c
 md"""
 ### Sensitivity & Specificity
 """
 
-# ╔═╡ d8f08ec3-bddc-4846-bd55-381373a51301
+# ╔═╡ 7d218b4c-d467-4317-b239-a96de01a9d81
 std_level = 1.5
 
-# ╔═╡ a2bf8116-6ddb-456e-b0a6-2a1145ac3cc9
+# ╔═╡ d1d90206-1f7d-46b7-9063-8d6cd530a6e1
 md"""
 #### False-Negatives
 """
 
-# ╔═╡ 3e424011-f270-45d5-832d-117c2bd2f47c
+# ╔═╡ 82baca25-0d76-40a9-b19f-4838e6e84d72
 begin
 	# Agatston
 	array_a = hcat(new_df_low_a[!, :predicted_mass_large_inserts], new_df_low_a[!, :predicted_mass_medium_inserts], new_df_low_a[!, :predicted_mass_small_inserts])
@@ -1428,15 +1501,15 @@ begin
 	end
 end
 
-# ╔═╡ a1fb39ec-e333-4c35-9c72-29281becf9f4
+# ╔═╡ a3b18554-6f32-4502-8fd4-d8550ddbbf07
 total_zero_md, total_zero_vf, total_zero_a
 
-# ╔═╡ d2be0a3d-7d2a-469f-8beb-9806db8d2a92
+# ╔═╡ f35612ba-8130-4c01-b91c-68886bccf358
 md"""
 #### False-Positives
 """
 
-# ╔═╡ 00669225-9347-46c8-9e03-56c49205d0d4
+# ╔═╡ 7873647b-d7f8-4d8c-89d7-f15c8d64653a
 begin
 	# Agatston
 	array_a_pos = new_df_low_a[!, :bkg_mass]
@@ -1466,10 +1539,10 @@ begin
 	end
 end
 
-# ╔═╡ 34a76785-5316-4d9b-8734-6b9f8ff429bc
+# ╔═╡ 5ca5e077-3900-4948-9136-8e1b907758b1
 total_pos_md, total_pos_vf, total_pos_a
 
-# ╔═╡ 120a6073-5447-4377-816f-cff88d153e58
+# ╔═╡ ca5d95fe-ae81-41e5-9a54-ddc81962f2a3
 function sensitivity_specificity()
     f = Figure()
     colors = Makie.wong_colors()
@@ -1538,38 +1611,38 @@ function sensitivity_specificity()
     return f
 end
 
-# ╔═╡ fe51bc0a-78f9-4508-8171-0a056db887a4
+# ╔═╡ f1a8465b-aea5-46a5-ab95-ef181096a682
 with_theme(sensitivity_specificity, medphys_theme)
 
-# ╔═╡ a2261f23-10a8-4bc1-b5cb-c96da65e4b25
+# ╔═╡ 2c0270a0-36e9-4b9d-855b-834aa443a808
 md"""
 ## High Density
 """
 
-# ╔═╡ b78bace6-e275-4950-8608-35888c339e12
+# ╔═╡ d9e33929-635a-450b-aa08-7ce0a6ee1170
 md"""
 ### Accuracy
 """
 
-# ╔═╡ 066d0e67-a4db-4acc-b1c8-9fcb6fd76e88
+# ╔═╡ 8a315d66-ff37-4e7d-9439-10567aabcd90
 new_df_high_md = vcat(dfs_high_md[1:length(dfs_high_md)]...);
 
-# ╔═╡ 0263f7e5-e98d-44e1-8dd5-5d1d4380e296
+# ╔═╡ 603ae0fc-4fc5-4a2f-8dd7-e3b868bba417
 new_df_high_vf = vcat(dfs_high_vf[1:length(dfs_high_vf)]...);
 
-# ╔═╡ 4a40ce3f-40dd-4d9d-af16-2bebebe9cb68
+# ╔═╡ fe9b5fcb-1221-4898-976b-051b4896e470
 new_df_high_a = vcat(dfs_high_a[1:length(dfs_high_a)]...);
 
-# ╔═╡ 4cadf68d-5cce-4331-8e96-8757a42667ef
+# ╔═╡ 1d176c7b-802f-462d-94ca-97849df1e529
 co_1_high_md, r_squared_1_high_md, rms_values_1_high_md, pred_1_high_md = calculate_coefficients(new_df_high_md);
 
-# ╔═╡ 3a799ff0-593c-4754-8180-c79c8a9c40cf
+# ╔═╡ ed9ec9d9-7262-4be2-99de-32c9fea8fc33
 co_1_high_vf, r_squared_1_high_vf, rms_values_1_high_vf, pred_1_high_vf = calculate_coefficients(new_df_high_vf);
 
-# ╔═╡ 6a4c5316-459d-4791-ae18-c9c756c9145a
+# ╔═╡ 9f3b22d1-e52a-4064-98e7-77856b5923bd
 co_1_high_a, r_squared_1_high_a, rms_values_1_high_a, pred_1_high_a = calculate_coefficients(new_df_high_a);
 
-# ╔═╡ 2eccc861-3b08-48a4-942a-e51feadb8e89
+# ╔═╡ 708ea6a0-2129-42b9-b05e-b2766bcaefd7
 function accuracy_high()
 	f = Figure()
 
@@ -1664,20 +1737,20 @@ function accuracy_high()
 	f
 end
 
-# ╔═╡ 323e72a2-6bd9-4398-9fe3-4d8cb4347979
+# ╔═╡ 40854076-fcc6-481a-b1c8-12ded408f242
 with_theme(accuracy_high, medphys_theme)
 
-# ╔═╡ cd48d27b-3d24-499f-baec-7a5bfd3338e7
+# ╔═╡ 2e0c8139-fe10-4b4e-b00d-c713208d8555
 md"""
 ### Sensitivity & Specificity
 """
 
-# ╔═╡ 30a6f69f-ca39-4a49-a37d-2f504e9f9d14
+# ╔═╡ eaab5224-3302-4dc4-9d09-c2728b547f23
 md"""
 #### False-Negatives
 """
 
-# ╔═╡ b8c2e2cc-10c8-4096-abf7-bd352d3e4cf0
+# ╔═╡ 986e1b6a-5052-4a1d-b3f8-65d05e8bf3bf
 begin
 	# Agatston
 	array_a_high = hcat(new_df_high_a[!, :predicted_mass_large_inserts], new_df_high_a[!, :predicted_mass_medium_inserts], new_df_high_a[!, :predicted_mass_small_inserts])
@@ -1715,15 +1788,15 @@ begin
 	end
 end
 
-# ╔═╡ 0869a394-8065-4620-b337-49d01fa3202d
+# ╔═╡ 6da99d21-dde5-4e21-aae9-f798e6d54a2b
 total_zero_md_high, total_zero_vf_high, total_zero_a_high
 
-# ╔═╡ e90a1cb1-d104-4a21-8837-47a9764a96a8
+# ╔═╡ 812e634d-ff38-43b9-8a8b-8a21a80654b5
 md"""
 #### False-Positives
 """
 
-# ╔═╡ 78103305-4811-4178-a70c-1ceb7101d8d0
+# ╔═╡ 7b0777fc-d104-480f-abd6-2f192ec539da
 begin
 	# Agatston
 	array_a_pos_high = new_df_high_a[!, :bkg_mass]
@@ -1753,10 +1826,10 @@ begin
 	end
 end
 
-# ╔═╡ 4f784cc2-7dd9-4a09-9eb0-e3ae2a012f88
+# ╔═╡ 77cf61eb-939e-42a7-917d-8fe4811522d5
 total_pos_md, total_pos_vf, total_pos_a
 
-# ╔═╡ 476630f6-6630-4cf3-9a9e-a415423eefd7
+# ╔═╡ f41d1a38-08f6-4d3e-8932-ef4d6783e065
 function sensitivity_specificity_high()
     f = Figure()
     colors = Makie.wong_colors()
@@ -1825,20 +1898,20 @@ function sensitivity_specificity_high()
     return f
 end
 
-# ╔═╡ 9c0dd631-6575-4bec-bc01-66d0579ef1a9
+# ╔═╡ cb0a3ad1-de3c-475d-a727-1dcbe2ffefb4
 with_theme(sensitivity_specificity_high, medphys_theme)
 
-# ╔═╡ 0c842b80-8caf-4251-baa1-f99da406dc50
+# ╔═╡ 39e42f15-de5c-445e-bd07-67745da578d7
 md"""
 ## Combined
 """
 
-# ╔═╡ 7f9b5200-487b-4788-b6fe-e2ef810dc61a
+# ╔═╡ 503fadca-83b4-444c-a3c9-a48fa6a67694
 md"""
 ### Accuracy
 """
 
-# ╔═╡ 1c660d27-f650-4cef-871f-de28927721d0
+# ╔═╡ 0b0094a2-e267-4820-89e8-1cf95145975e
 function accuracy_combined()
 	f = Figure()
 
@@ -2010,15 +2083,15 @@ function accuracy_combined()
 	f
 end
 
-# ╔═╡ 306e9179-23e3-4d06-87d0-71c91bf33367
+# ╔═╡ c27811d2-d651-4198-bf90-246c4dafd8ad
 accuracy_combined()
 
-# ╔═╡ 3f672521-eda4-42f7-8afe-3e6ebd85cdd1
+# ╔═╡ 8060a585-765a-47ac-bc66-04808bd401f6
 md"""
 ### Sensitivity & Specificity
 """
 
-# ╔═╡ c7ab1789-59d0-4307-b09d-44a2f33cfb43
+# ╔═╡ 7d7afb9b-2dbd-4373-b745-c245f86e48f7
 function sensitivity_specificity_combined()
     f = Figure()
     colors = Makie.wong_colors()
@@ -2130,101 +2203,100 @@ function sensitivity_specificity_combined()
     return f
 end
 
-# ╔═╡ 85c7f5d9-fac4-4c36-97a6-3fa9d7f7ca0d
+# ╔═╡ 6dd9b880-0e55-46d9-a52a-66e16f1bc7d9
 sensitivity_specificity_combined()
 
 # ╔═╡ Cell order:
-# ╠═e5248e4b-76bc-4a45-b38d-2c7f55f8d8f7
-# ╠═67c7c5e9-e181-4560-b77a-50e9d7977348
-# ╠═155ddbb8-f3a2-4db9-b256-7fd771785d66
-# ╠═90830c78-6f24-41a3-a2eb-1fce3756bcaf
-# ╠═68ec4904-d908-4c1e-98e1-00ec7ba06f59
-# ╠═00c7bf5b-58b1-4184-8ddc-b97a81eca736
-# ╠═29f9cf29-9437-42a6-8dab-89105273c187
-# ╠═1b568480-5467-4ffd-9099-de81066e407e
-# ╟─d1502f07-edc5-4baf-b7e9-808d37aeb6b3
-# ╠═668d1999-ce4e-4510-9dd4-84a26ab26dcf
-# ╠═b38de269-be3f-4e5d-adfb-43b1db438937
-# ╟─66025838-3122-4316-ba66-35b89e9d510c
-# ╠═00e313f8-1f2f-4e16-ae14-85c1f082c843
-# ╠═b832088f-9f9b-43c1-a677-a43fa6fd1588
-# ╠═d8495fcd-56a2-4555-8aa7-e712883f8862
-# ╠═17ced35c-de57-4633-be0f-754ccfbfe180
-# ╠═48ec2518-1644-4db9-bd86-fd32a77ca9f6
-# ╟─c02cc808-ac3b-479a-b5a1-9abb36b93a03
-# ╠═b9753033-46ef-4509-8102-d4d294171257
-# ╠═c30d5213-abcc-482d-887a-a63b54eed243
-# ╟─905ccae5-0ee5-4242-b58a-25ef4bcbb8b9
-# ╠═2402b78f-580b-47eb-962f-707c90d6e74c
-# ╠═896312ad-3284-487f-b549-bd34ac8b1f67
-# ╟─c0095d39-14f2-464d-8f55-ea1739a7b313
-# ╟─cb0fc64e-8e36-4250-9ea6-427b5dccf27d
-# ╠═0c05f4a7-45ad-4dc3-8d1c-cfd4a48fce95
-# ╠═af661a05-e9ec-4b0b-8d7e-0ce39af016ec
-# ╠═06780785-7a4d-4e8f-bc3e-7163ac6374f4
-# ╟─4c2bf021-6a1d-4c8c-a3f4-7aee6c39c361
-# ╠═0029b07b-6c4f-49f3-841b-3e75e2f2a34f
-# ╟─e35e963d-1b3f-4d6e-8598-ea6c104935c2
-# ╠═42fd7e43-96fe-4c85-9807-9239cc66f10b
-# ╟─0666cb65-8c79-4766-a4f4-4d57797b98f3
-# ╟─feddd76b-bb09-4f05-894f-a89b1bcfbcff
-# ╠═2e882999-ded4-43f5-aa45-66f6438dc641
-# ╠═b63a9eee-7d14-4b4a-92b5-6b960aad90c1
-# ╟─776b150d-ddbe-494a-9e53-632a33bb502b
-# ╠═3d45ea72-bc18-4651-8a0d-286294d1725e
-# ╠═7f0eb143-a2bf-4623-9d3e-9698f03f5311
-# ╟─397c56dc-79c0-4a18-8a04-fded2676c658
-# ╠═ccce7595-bc08-4855-819b-9dd3e9e88198
-# ╟─ca68557b-b343-4f1c-96cb-5cccb10636ad
-# ╠═044e548f-f81e-4cf8-a872-8e5440e74ddb
-# ╟─5ffcf3a8-e3d5-4093-8794-7eb133252d04
-# ╠═d394450d-825d-4071-9102-239c1dd79b98
-# ╠═a08b9637-f6d3-4671-9cfa-2a67b27f6585
-# ╠═4b9aa903-625f-4d4e-89de-aa175b33cbf5
-# ╠═c3f49d87-b42f-4e72-9f8f-02c8aa72af4f
-# ╟─1b6ce948-c725-46e8-a414-c64a7ca49239
-# ╟─4355944f-2562-48d1-bddc-82cb6e23472c
-# ╠═ca81d1ea-252a-4d43-aab8-4a08f95176dc
-# ╠═b0af4257-b1a9-448d-83ec-fd5494595aa2
-# ╠═9efebaa2-458a-4d5a-a44d-f01f1dddac18
-# ╠═ed6a9d9d-ce6a-4eab-955b-c6e676103603
-# ╠═073282e1-f842-41a0-98dc-c1b4bf8959b0
-# ╠═d3459d52-d9a0-492b-b540-342ea732486b
-# ╟─5c002c0a-10cf-4eb3-bac1-08ac25aab4cf
-# ╠═41387ee8-07fa-4a54-bb1d-cbe78d56e08b
-# ╟─3387dc7d-4c94-4bf2-a917-fa9a576b1661
-# ╠═d8f08ec3-bddc-4846-bd55-381373a51301
-# ╟─a2bf8116-6ddb-456e-b0a6-2a1145ac3cc9
-# ╠═3e424011-f270-45d5-832d-117c2bd2f47c
-# ╠═a1fb39ec-e333-4c35-9c72-29281becf9f4
-# ╟─d2be0a3d-7d2a-469f-8beb-9806db8d2a92
-# ╠═00669225-9347-46c8-9e03-56c49205d0d4
-# ╠═34a76785-5316-4d9b-8734-6b9f8ff429bc
-# ╟─120a6073-5447-4377-816f-cff88d153e58
-# ╟─fe51bc0a-78f9-4508-8171-0a056db887a4
-# ╟─a2261f23-10a8-4bc1-b5cb-c96da65e4b25
-# ╟─b78bace6-e275-4950-8608-35888c339e12
-# ╠═066d0e67-a4db-4acc-b1c8-9fcb6fd76e88
-# ╠═0263f7e5-e98d-44e1-8dd5-5d1d4380e296
-# ╠═4a40ce3f-40dd-4d9d-af16-2bebebe9cb68
-# ╠═4cadf68d-5cce-4331-8e96-8757a42667ef
-# ╠═3a799ff0-593c-4754-8180-c79c8a9c40cf
-# ╠═6a4c5316-459d-4791-ae18-c9c756c9145a
-# ╟─2eccc861-3b08-48a4-942a-e51feadb8e89
-# ╟─323e72a2-6bd9-4398-9fe3-4d8cb4347979
-# ╟─cd48d27b-3d24-499f-baec-7a5bfd3338e7
-# ╟─30a6f69f-ca39-4a49-a37d-2f504e9f9d14
-# ╠═b8c2e2cc-10c8-4096-abf7-bd352d3e4cf0
-# ╠═0869a394-8065-4620-b337-49d01fa3202d
-# ╟─e90a1cb1-d104-4a21-8837-47a9764a96a8
-# ╠═78103305-4811-4178-a70c-1ceb7101d8d0
-# ╠═4f784cc2-7dd9-4a09-9eb0-e3ae2a012f88
-# ╟─476630f6-6630-4cf3-9a9e-a415423eefd7
-# ╟─9c0dd631-6575-4bec-bc01-66d0579ef1a9
-# ╟─0c842b80-8caf-4251-baa1-f99da406dc50
-# ╟─7f9b5200-487b-4788-b6fe-e2ef810dc61a
-# ╟─1c660d27-f650-4cef-871f-de28927721d0
-# ╟─306e9179-23e3-4d06-87d0-71c91bf33367
-# ╟─3f672521-eda4-42f7-8afe-3e6ebd85cdd1
-# ╟─c7ab1789-59d0-4307-b09d-44a2f33cfb43
-# ╟─85c7f5d9-fac4-4c36-97a6-3fa9d7f7ca0d
+# ╠═024de588-307b-452d-812d-3a58b9265089
+# ╠═3c5e1804-23dd-4629-baa5-5106aacd74a6
+# ╠═0c4ba5cc-8e40-40c6-b596-785973bbc74e
+# ╠═a9c366d0-e90a-406c-b970-3d5a76bc7973
+# ╠═11835515-0d70-4a4b-b7f0-742153e4c8e2
+# ╠═65212870-6665-4ce8-b1f6-f80f9304bf04
+# ╠═f1708909-5df5-477b-9657-82029aab0a50
+# ╠═937d6c6d-80c7-4bfc-9c61-9d1830c84b66
+# ╠═c69df360-2e83-4d92-89a5-beaa1a20a1c5
+# ╠═2a8133c5-d7c0-4f85-8091-9a6c9d2aceb4
+# ╠═a5935d6a-c825-4f8e-b559-c22104bb151e
+# ╠═0a82a5ee-d54d-41fe-9cd3-336d8d9ca8e9
+# ╠═ebec3a75-49ff-4ab0-b738-59cac17a001f
+# ╠═3f9c0eb2-b727-4b9a-91eb-f9c482d6809f
+# ╠═d3e09d9a-187f-4db0-a8c5-5fc0dc408d25
+# ╠═f1575684-58ac-4606-92ef-993377c8309d
+# ╠═82712845-c2ba-49f1-a8ad-9127cbc321b2
+# ╠═a1289bbb-21b8-471e-9116-86f04f53c085
+# ╠═ea5853a5-5cd8-4017-824c-c1a9c945b357
+# ╠═66d07988-d98a-4bab-8243-33d6f4485cf0
+# ╠═c93775d8-3422-4ad1-9f40-6d57477d8425
+# ╠═636abeda-6c10-4d21-ae08-10e1274b77a1
+# ╠═d0b1613e-890e-417d-b7eb-57b0bc9fafe2
+# ╠═93679b54-9364-4579-8767-53e36499b6d8
+# ╠═853d895d-91d4-487a-a927-e74424bba9ed
+# ╠═d6a65460-51e0-4b18-83e5-1844f2566cc6
+# ╠═e45adb9a-0519-4063-b8ae-2cb7e1005397
+# ╠═8a774374-ecce-40d7-8b64-609124242d1f
+# ╠═38bf3544-c7a4-46d6-9df2-6fe269b24cb8
+# ╠═5588545b-f070-4e02-ac12-3e1b5a150d88
+# ╠═20a32f24-2c4b-4308-a6e1-802a72322fa7
+# ╠═c2db3887-3be1-499a-ba8c-d0a9f3f3f645
+# ╠═7cfd0261-208d-41b6-b356-63d9e02ca13a
+# ╠═cac42faf-836c-42a2-bed2-f0bba2a13be0
+# ╠═bd61d48e-886b-40c6-a54a-76468c52cd4e
+# ╠═6c01fb2c-c8cf-4484-8509-3fc540c038a0
+# ╠═b410ca06-2fe0-4671-925e-bbdaf9786849
+# ╠═e7e5385b-4016-4bb3-8fd8-c203f8e5f8d8
+# ╠═d01812f8-e0ec-4b2d-9992-e7db2610d4fe
+# ╠═397e2b5a-8d37-4398-b92b-678b4ba080ee
+# ╠═e0c01bd6-0cec-408d-b534-cf36cb5bd78a
+# ╠═6952fc87-c733-4e67-b1aa-ec9dd46ebe3d
+# ╠═1a70a6e7-108d-477e-b1a5-7e755cbc0619
+# ╠═d7e045fc-ac9c-4f53-836e-aedcadad1fbe
+# ╠═95509262-a9a1-41b6-972d-e7dcf7bb2371
+# ╠═b98db832-06bd-492f-8ca4-38e298086c8a
+# ╠═3baf66b0-5e25-43d2-9b53-6b2d35f268a7
+# ╠═c3919e4d-c474-4aeb-bdc8-76e139e1d8c2
+# ╠═fef76b74-ddfe-4578-9ccc-a8ff68b60137
+# ╠═6d84cb36-80cf-43af-b100-caab847b347a
+# ╠═fd222d84-8b90-418e-b405-929557aaff8a
+# ╠═a32f1676-cb1c-4b57-99a0-b6f7b542dbaf
+# ╠═c9f166c4-1269-42c5-85fb-21e0786a2ec5
+# ╠═2f742443-0dd4-4d25-90ff-4c7941cba0a2
+# ╠═7b6def43-c729-4698-a752-9d37f182e816
+# ╠═1cb3b222-e86d-41a5-98f0-d4faa9363e87
+# ╠═c23d6948-d28a-4c66-ae2d-78686082e5f3
+# ╠═6fb4896c-a086-4ef1-bbb7-1f1603338b3c
+# ╠═7d218b4c-d467-4317-b239-a96de01a9d81
+# ╠═d1d90206-1f7d-46b7-9063-8d6cd530a6e1
+# ╠═82baca25-0d76-40a9-b19f-4838e6e84d72
+# ╠═a3b18554-6f32-4502-8fd4-d8550ddbbf07
+# ╠═f35612ba-8130-4c01-b91c-68886bccf358
+# ╠═7873647b-d7f8-4d8c-89d7-f15c8d64653a
+# ╠═5ca5e077-3900-4948-9136-8e1b907758b1
+# ╠═ca5d95fe-ae81-41e5-9a54-ddc81962f2a3
+# ╠═f1a8465b-aea5-46a5-ab95-ef181096a682
+# ╠═2c0270a0-36e9-4b9d-855b-834aa443a808
+# ╠═d9e33929-635a-450b-aa08-7ce0a6ee1170
+# ╠═8a315d66-ff37-4e7d-9439-10567aabcd90
+# ╠═603ae0fc-4fc5-4a2f-8dd7-e3b868bba417
+# ╠═fe9b5fcb-1221-4898-976b-051b4896e470
+# ╠═1d176c7b-802f-462d-94ca-97849df1e529
+# ╠═ed9ec9d9-7262-4be2-99de-32c9fea8fc33
+# ╠═9f3b22d1-e52a-4064-98e7-77856b5923bd
+# ╠═708ea6a0-2129-42b9-b05e-b2766bcaefd7
+# ╠═40854076-fcc6-481a-b1c8-12ded408f242
+# ╠═2e0c8139-fe10-4b4e-b00d-c713208d8555
+# ╠═eaab5224-3302-4dc4-9d09-c2728b547f23
+# ╠═986e1b6a-5052-4a1d-b3f8-65d05e8bf3bf
+# ╠═6da99d21-dde5-4e21-aae9-f798e6d54a2b
+# ╠═812e634d-ff38-43b9-8a8b-8a21a80654b5
+# ╠═7b0777fc-d104-480f-abd6-2f192ec539da
+# ╠═77cf61eb-939e-42a7-917d-8fe4811522d5
+# ╠═f41d1a38-08f6-4d3e-8932-ef4d6783e065
+# ╠═cb0a3ad1-de3c-475d-a727-1dcbe2ffefb4
+# ╠═39e42f15-de5c-445e-bd07-67745da578d7
+# ╠═503fadca-83b4-444c-a3c9-a48fa6a67694
+# ╠═0b0094a2-e267-4820-89e8-1cf95145975e
+# ╠═c27811d2-d651-4198-bf90-246c4dafd8ad
+# ╠═8060a585-765a-47ac-bc66-04808bd401f6
+# ╠═7d7afb9b-2dbd-4373-b745-c245f86e48f7
+# ╠═6dd9b880-0e55-46d9-a52a-66e16f1bc7d9
