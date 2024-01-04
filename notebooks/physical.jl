@@ -30,49 +30,34 @@ using PlutoUI: bind, TableOfContents, Slider
 
 # ╔═╡ cd5ede11-8d2b-43a9-bb6f-5768dd3e7f33
 # ╠═╡ show_logs = false
-using CairoMakie: Figure, Axis, heatmap!, scatter!
+using CairoMakie: Figure, Axis, heatmap!, scatter!, hist!
 
 # ╔═╡ 33307f19-7302-4c79-9c69-573996c678d6
-using ImageMorphology: label_components, component_centroids
-
-# ╔═╡ 64cb24ac-2f8f-4941-b978-6860226e0dc9
-using LinearAlgebra: norm
-
-# ╔═╡ 9d453f1c-dc43-4176-a7fa-4ea11c7ae3ee
-using Statistics: mean
-
-# ╔═╡ 00f3a2e5-9a32-4358-8611-b06c5b0b566b
-using StatsBase: countmap
-
-# ╔═╡ 76908202-063f-4a4c-b4aa-c1349da6adb7
-using Clustering: kmeans, assignments
-
-# ╔═╡ d9d39c0c-a1fc-4294-b5bf-ba2bfdcc3068
-using DICOM
-
-# ╔═╡ 33bbb4c6-e4bd-45f7-970d-ff50c98f8d16
-using ImageMorphology: component_boxes
-
-# ╔═╡ 5f0d1e1a-d7ba-4cf0-94f4-c2c160545e6b
-using StaticArrays: SVector
-
-# ╔═╡ c41f7045-cf79-44e8-9bc5-6c7c01af0196
-using LinearAlgebra: normalize, dot
+using ImageMorphology: label_components, component_centroids, component_boxes
 
 # ╔═╡ f5fe79b0-eede-49b4-bec8-6ce8d61026b5
 using ImageMorphology: dilate
 
-# ╔═╡ 6f432a37-327e-4ef7-9497-8f34e2544f83
-using StatsBase: quantile
+# ╔═╡ 9d453f1c-dc43-4176-a7fa-4ea11c7ae3ee
+using Statistics: mean, std
 
-# ╔═╡ cbcaa4fb-2c0b-48e6-b018-d1b4a31409f1
-using CairoMakie: hist!
+# ╔═╡ 00f3a2e5-9a32-4358-8611-b06c5b0b566b
+using StatsBase: countmap, quantile
 
-# ╔═╡ 693df7e1-34a7-4b11-9df5-02cdafea651b
-using Statistics: std
+# ╔═╡ 76908202-063f-4a4c-b4aa-c1349da6adb7
+using Clustering: kmeans, assignments
+
+# ╔═╡ c41f7045-cf79-44e8-9bc5-6c7c01af0196
+using LinearAlgebra: norm, normalize, dot
+
+# ╔═╡ 5f0d1e1a-d7ba-4cf0-94f4-c2c160545e6b
+using StaticArrays: SVector
 
 # ╔═╡ 1ca1fc19-9eb4-4f3c-a8e5-9b059bec02bf
 using CalciumScoring: VolumeFraction, Agatston, score
+
+# ╔═╡ d9d39c0c-a1fc-4294-b5bf-ba2bfdcc3068
+using DICOM: dcmdir_parse
 
 # ╔═╡ de0183b1-a794-4260-b3dc-a84ac4d889f5
 # ╠═╡ show_logs = false
@@ -395,12 +380,10 @@ end
 # ╔═╡ 8bb9db58-d77d-4ed3-94a4-78894a0baa13
 centers_a, centers_b = get_insert_centers(dcm_heart, 200);
 
-# ╔═╡ 0a2474e4-0a23-4452-b222-0dce95b41bcd
-@bind z3 Slider([centers_a[3], centers_b[3]], show_value = true)
-
 # ╔═╡ 11328d2a-cec1-4c81-8558-686950717939
-# Modify the in_cylinder function to accept Static Vectors
-function _in_cylinder(pt::SVector{3, Int}, pt1::SVector{3, Float64}, pt2::SVector{3, Float64}, radius)
+function _in_cylinder(
+	pt::SVector{3, Int}, pt1::SVector{3, Float64}, pt2::SVector{3, Float64}, radius
+)
     v = pt2 - pt1
     w = pt - pt1
 
@@ -601,14 +584,12 @@ a_agatston, a_volume, a_mass = score(overlayed_mask, pixel_size, mass_cal_factor
 # ╠═6648546a-35b1-40df-8493-79284a46f609
 # ╠═cd5ede11-8d2b-43a9-bb6f-5768dd3e7f33
 # ╠═33307f19-7302-4c79-9c69-573996c678d6
-# ╠═64cb24ac-2f8f-4941-b978-6860226e0dc9
+# ╠═f5fe79b0-eede-49b4-bec8-6ce8d61026b5
 # ╠═9d453f1c-dc43-4176-a7fa-4ea11c7ae3ee
 # ╠═00f3a2e5-9a32-4358-8611-b06c5b0b566b
 # ╠═76908202-063f-4a4c-b4aa-c1349da6adb7
 # ╠═c41f7045-cf79-44e8-9bc5-6c7c01af0196
-# ╠═33bbb4c6-e4bd-45f7-970d-ff50c98f8d16
 # ╠═5f0d1e1a-d7ba-4cf0-94f4-c2c160545e6b
-# ╠═693df7e1-34a7-4b11-9df5-02cdafea651b
 # ╠═1ca1fc19-9eb4-4f3c-a8e5-9b059bec02bf
 # ╠═d9d39c0c-a1fc-4294-b5bf-ba2bfdcc3068
 # ╠═de0183b1-a794-4260-b3dc-a84ac4d889f5
@@ -652,7 +633,6 @@ a_agatston, a_volume, a_mass = score(overlayed_mask, pixel_size, mass_cal_factor
 # ╟─cea55170-b870-42dc-93c5-ce796039cc10
 # ╠═dece0067-9ddd-47c5-85f8-a016e8db620f
 # ╠═8bb9db58-d77d-4ed3-94a4-78894a0baa13
-# ╟─0a2474e4-0a23-4452-b222-0dce95b41bcd
 # ╠═11328d2a-cec1-4c81-8558-686950717939
 # ╠═3af82fb8-a8b1-4f43-95ba-9260bc7beb5c
 # ╠═32c5fe98-c82a-44c8-ab88-2dce146fa28a
@@ -660,12 +640,9 @@ a_agatston, a_volume, a_mass = score(overlayed_mask, pixel_size, mass_cal_factor
 # ╟─08b9e104-57fa-4807-843e-5ef958079375
 # ╟─313a9618-f56d-49e3-aa07-4741421beb65
 # ╟─8ff22fa9-5891-4705-8f17-d6d95a36e4c2
-# ╠═f5fe79b0-eede-49b4-bec8-6ce8d61026b5
 # ╠═c8ed7211-5b67-44ce-bf8f-f6b65806fc57
 # ╟─01dbc828-4fa7-48d4-8a0a-edb275e8f715
 # ╠═ce8494e6-43ab-40a5-82dd-ea64710184f9
-# ╠═6f432a37-327e-4ef7-9497-8f34e2544f83
-# ╠═cbcaa4fb-2c0b-48e6-b018-d1b4a31409f1
 # ╠═02fb9d18-4686-4c73-a2eb-eaf8b0f5c012
 # ╟─db4672ce-933a-4aa8-9220-1e263ea540dd
 # ╟─f2bd880f-e79d-4831-9f8d-65b5f4e1ba68
