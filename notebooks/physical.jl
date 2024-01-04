@@ -29,6 +29,7 @@ using DrWatson
 using PlutoUI: bind, TableOfContents, Slider
 
 # ╔═╡ cd5ede11-8d2b-43a9-bb6f-5768dd3e7f33
+# ╠═╡ show_logs = false
 using CairoMakie: Figure, Axis, heatmap!, scatter!
 
 # ╔═╡ 33307f19-7302-4c79-9c69-573996c678d6
@@ -49,7 +50,32 @@ using Clustering: kmeans, assignments
 # ╔═╡ d9d39c0c-a1fc-4294-b5bf-ba2bfdcc3068
 using DICOM
 
+# ╔═╡ 33bbb4c6-e4bd-45f7-970d-ff50c98f8d16
+using ImageMorphology: component_boxes
+
+# ╔═╡ 5f0d1e1a-d7ba-4cf0-94f4-c2c160545e6b
+using StaticArrays: SVector
+
+# ╔═╡ c41f7045-cf79-44e8-9bc5-6c7c01af0196
+using LinearAlgebra: normalize, dot
+
+# ╔═╡ f5fe79b0-eede-49b4-bec8-6ce8d61026b5
+using ImageMorphology: dilate
+
+# ╔═╡ 6f432a37-327e-4ef7-9497-8f34e2544f83
+using StatsBase: quantile
+
+# ╔═╡ cbcaa4fb-2c0b-48e6-b018-d1b4a31409f1
+using CairoMakie: hist!
+
+# ╔═╡ 693df7e1-34a7-4b11-9df5-02cdafea651b
+using Statistics: std
+
+# ╔═╡ 1ca1fc19-9eb4-4f3c-a8e5-9b059bec02bf
+using CalciumScoring: VolumeFraction, Agatston, score
+
 # ╔═╡ de0183b1-a794-4260-b3dc-a84ac4d889f5
+# ╠═╡ show_logs = false
 include(srcdir("active_contours.jl"));
 
 # ╔═╡ 64de6299-c69c-409d-bcb9-dd5ce09ae0b5
@@ -276,21 +302,7 @@ function find_heart_plane(dcm_heart, endpoints; air_threshold = -300, std_thresh
 
 	selected_inds = getindex.(selected_inds, [1 2 3])
 
-	# # Clean points
-	# centroid = mean(selected_inds, dims=1)
-	
-	# # Calculate the Euclidean distance of each point to the centroid
-	# distances_to_centroid = [norm(selected_inds[i, :] .- centroid) for i in axes(selected_inds, 1)]
-	
-	# # Calculate mean and standard deviation of the distances
-	# mean_distance = mean(distances_to_centroid)
-	# std_distance = std(distances_to_centroid)
-	
-	# # Define the threshold as mean plus 0.5 standard deviations
-	# threshold = mean_distance + (std_threshold * std_distance)
-	
-	# # Filter the points based on the threshold
-	# filtered_points = selected_inds[distances_to_centroid .<= threshold, :]
+	# Clean points
 	filtered_points = kmeans_cleaning(selected_inds)
 
 	# Create boolean array from cartesian indices
@@ -332,6 +344,256 @@ centroids
 # ╔═╡ 02f19951-5077-4744-9d18-4b99d6ec33e3
 pts = extract_plane_points(cc_labels)
 
+# ╔═╡ cea55170-b870-42dc-93c5-ce796039cc10
+md"""
+## Segment Calcium Inserts
+"""
+
+# ╔═╡ dece0067-9ddd-47c5-85f8-a016e8db620f
+function get_insert_centers(mpr, threshold)
+	# z = div(size(mpr, 3), 2)
+	# mpr_slice = mpr[:, :, z]
+	# mpr_slice_thresh = mpr_slice .> threshold
+	mpr_slice_thresh = mpr .> threshold
+	
+	# Use connected component labeling to identify and label all connected components
+	cc_labels = label_components(mpr_slice_thresh)
+
+	# Use the countmap function to count the number of occurrences of each value in the array, excluding 0
+	counts = countmap(cc_labels[cc_labels .!= 0])
+	
+	# Find the value with the most occurrences
+	most_common_value_a, most_common_value_b = sort(collect(pairs(counts)), by=x->x[2], rev=true)
+
+	# Find the indices of the most common value in the original array
+	most_common_indices_a = findall(cc_labels .== most_common_value_a[1])
+
+	# Create boolean array from new cartesian indices
+	bool_arr_a = zeros(size(mpr_slice_thresh))
+	for i in most_common_indices_a
+		bool_arr_a[i] = 1
+	end
+	centroids_a = Int.(round.(component_centroids(label_components(bool_arr_a))[end]))
+	box_a = component_boxes(label_components(bool_arr_a))
+
+	# Find the indices of the most common value in the original array
+	most_common_indices_b = findall(cc_labels .== most_common_value_b[1])
+
+	# Create boolean array from new cartesian indices
+	bool_arr_b = zeros(size(mpr_slice_thresh))
+	for i in most_common_indices_b
+		bool_arr_b[i] = 1
+	end
+	centroids_b = Int.(round.(component_centroids(label_components(bool_arr_b))[end]))
+
+	# centers_a, centers_b = [centroids_a..., z], [centroids_b..., z]
+	centers_a, centers_b = centroids_a, centroids_b
+	return centers_a, centers_b
+	
+end
+
+# ╔═╡ 8bb9db58-d77d-4ed3-94a4-78894a0baa13
+centers_a, centers_b = get_insert_centers(dcm_heart, 200);
+
+# ╔═╡ 0a2474e4-0a23-4452-b222-0dce95b41bcd
+@bind z3 Slider([centers_a[3], centers_b[3]], show_value = true)
+
+# ╔═╡ 11328d2a-cec1-4c81-8558-686950717939
+# Modify the in_cylinder function to accept Static Vectors
+function _in_cylinder(pt::SVector{3, Int}, pt1::SVector{3, Float64}, pt2::SVector{3, Float64}, radius)
+    v = pt2 - pt1
+    w = pt - pt1
+
+    # Compute the dot product
+    c1 = dot(w, v)
+    if c1 <= 0
+        return norm(w) <= radius
+    end
+
+    c2 = dot(v, v)
+    if c2 <= c1
+        return norm(pt - pt2) <= radius
+    end
+
+    # Compute the perpendicular distance
+    b = c1 / c2
+    pb = pt1 + b * v
+    return norm(pt - pb) <= radius
+end
+
+# ╔═╡ 3af82fb8-a8b1-4f43-95ba-9260bc7beb5c
+function create_cylinder(array, pt1, pt2, radius, offset)
+    # Convert the points to static arrays
+    pt1 = SVector{3, Float64}(pt1)
+    pt2 = SVector{3, Float64}(pt2)
+
+    # Compute the unit vector in the direction from pt1 to pt2
+    direction = normalize(pt2 - pt1)
+
+    # Adjust the endpoints of the cylinder by the offset
+    pt1 = pt1 - offset * direction
+    pt2 = pt2 + offset * direction
+
+    # Initialize the 3D array
+    cylinder = zeros(Int, size(array)...)
+    # Iterate over the 3D array
+    for k in axes(cylinder, 3)
+        for j in axes(cylinder, 2)
+            for i in axes(cylinder, 1)
+                # Create a static vector for the current point
+                pt = SVector{3, Int}(i, j, k)
+
+                # Check if the current point is inside the cylinder
+                if _in_cylinder(pt, pt1, pt2, radius)
+                    cylinder[i, j, k] = 1
+                end
+            end
+        end
+    end
+    return Bool.(cylinder)
+end
+
+# ╔═╡ 32c5fe98-c82a-44c8-ab88-2dce146fa28a
+cylinder = create_cylinder(dcm_heart, centers_a, centers_b, 8, -25);
+
+# ╔═╡ 31e877f0-b96d-467d-8c47-9733d69f2346
+begin
+	br = create_cylinder(dcm_heart, centers_a, centers_b, 12, -25);
+	background_ring = Bool.(br .- cylinder)
+end;
+
+# ╔═╡ 08b9e104-57fa-4807-843e-5ef958079375
+@bind z Slider(axes(dcm_heart, 3), default=div(size(dcm_heart, 3), 2), show_value=true)
+
+# ╔═╡ 313a9618-f56d-49e3-aa07-4741421beb65
+let
+	f = Figure(size = (800, 500))
+
+	ax = Axis(
+		f[1, 1],
+		title = "Insert Mask"
+	)
+	heatmap!(transpose(dcm_arr[:, :, z]); colormap = :grays)
+	heatmap!(cylinder[:, :, z]; colormap = (:jet, 0.25))
+
+	ax = Axis(
+		f[1, 2],
+		title = "Background Mask"
+	)
+	heatmap!(transpose(dcm_arr[:, :, z]); colormap = :grays)
+	heatmap!(background_ring[:, :, z]; colormap = (:viridis, 0.25))
+
+	f
+end
+
+# ╔═╡ 8ff22fa9-5891-4705-8f17-d6d95a36e4c2
+md"""
+## Segment Calibration Insert
+"""
+
+# ╔═╡ c8ed7211-5b67-44ce-bf8f-f6b65806fc57
+begin
+	binary_calibration = falses(size(dcm_heart))
+	binary_calibration[centers_a...] = true
+	binary_calibration = dilate(binary_calibration)
+end;
+
+# ╔═╡ 01dbc828-4fa7-48d4-8a0a-edb275e8f715
+md"""
+## Remove Outliers (Air)
+"""
+
+# ╔═╡ ce8494e6-43ab-40a5-82dd-ea64710184f9
+function remove_outliers(vector)
+    Q1 = quantile(vector, 0.25)
+    Q3 = quantile(vector, 0.75)
+    IQR = Q3 - Q1
+    lower_bound = Q1 - 1.5 * IQR
+    return [x for x in vector if x > lower_bound]
+end
+
+# ╔═╡ 02fb9d18-4686-4c73-a2eb-eaf8b0f5c012
+dcm_heart_clean = remove_outliers(dcm_heart[cylinder]);
+
+# ╔═╡ db4672ce-933a-4aa8-9220-1e263ea540dd
+let
+	f = Figure(size = (700, 1000))
+	ax = Axis(f[1, 1], title = "Original")
+	hist!(dcm_heart[cylinder])
+
+	ax = Axis(f[2, 1], title = "Clean")
+	hist!(dcm_heart_clean)
+
+	f
+end
+
+# ╔═╡ f2bd880f-e79d-4831-9f8d-65b5f4e1ba68
+md"""
+# Score
+"""
+
+# ╔═╡ 6eadda32-c20e-4429-ab4f-6480facd988e
+md"""
+## Ground Truth
+"""
+
+# ╔═╡ 83b3c3c3-4c91-48ed-909b-aafdce1427f9
+begin
+	gt_density = 0.10 # mg/mm^3
+
+	# π * (diameter/2)^2 * length
+	gt_volume = π * (5/2)^2 * 7 # mm3
+	gt_mass = gt_density * gt_volume
+end
+
+# ╔═╡ be7a5329-1147-4889-a2d7-d07005369e4b
+md"""
+## Volume Fraction
+"""
+
+# ╔═╡ 4c130872-3a57-40a3-8c43-51e46b963b69
+hu_calcium_400 = mean(dcm_heart[binary_calibration])
+
+# ╔═╡ a52ce3c2-3a82-4124-a260-0e1497038cd2
+std(dcm_heart[binary_calibration])
+
+# ╔═╡ 22fcd352-feaa-450d-9aa4-0f8863a81b50
+ρ_calcium_400 = 0.400 # mg/mm^3
+
+# ╔═╡ 54fcf8a4-b397-4d38-a953-fdf575c44f71
+voxel_size = pixel_size[1] * pixel_size[2] * pixel_size[3]
+
+# ╔═╡ f869c063-e18f-4936-92e7-7cadc22768de
+# hu_heart_tissue_bkg = mean(mpr[background_ring])
+hu_heart_tissue_bkg = mean(dcm_heart[background_ring])
+
+# ╔═╡ 3e54e379-9513-4741-9ade-657741be2615
+# vf_mass = score(mpr_clean, hu_calcium_400, hu_heart_tissue_bkg, voxel_size, ρ_calcium_400, VolumeFraction())
+vf_mass = score(dcm_heart_clean, hu_calcium_400, hu_heart_tissue_bkg, voxel_size, ρ_calcium_400, VolumeFraction())
+
+# ╔═╡ 728cf85d-7200-41b7-850b-cc68f17f68cb
+md"""
+## Agatston
+"""
+
+# ╔═╡ 60586f95-2a4d-46cf-b568-b589d0700854
+begin
+	overlayed_mask = zeros(size(dcm_arr))
+	for z in axes(dcm_arr, 3)
+		overlayed_mask = dcm_arr[:, :, z] .* heart_mask
+	end
+end
+
+# ╔═╡ fdcb9783-0652-4651-8900-84bc81a686a7
+# kV = header[tag"KVP"]
+kV = 120
+
+# ╔═╡ 5ad5b33e-4f1a-40ad-851e-0fd170651006
+mass_cal_factor = ρ_calcium_400 / hu_calcium_400
+
+# ╔═╡ 8d7d7e3f-9e23-4c01-9b8b-41b1e10f2bf8
+a_agatston, a_volume, a_mass = score(overlayed_mask, pixel_size, mass_cal_factor, Agatston(); kV=kV)
+
 # ╔═╡ Cell order:
 # ╠═1e230606-179f-4875-aa86-ddb63f62b5ac
 # ╠═aa37c780-d6c7-4b42-ab26-0ce4b8b2d82d
@@ -343,6 +605,11 @@ pts = extract_plane_points(cc_labels)
 # ╠═9d453f1c-dc43-4176-a7fa-4ea11c7ae3ee
 # ╠═00f3a2e5-9a32-4358-8611-b06c5b0b566b
 # ╠═76908202-063f-4a4c-b4aa-c1349da6adb7
+# ╠═c41f7045-cf79-44e8-9bc5-6c7c01af0196
+# ╠═33bbb4c6-e4bd-45f7-970d-ff50c98f8d16
+# ╠═5f0d1e1a-d7ba-4cf0-94f4-c2c160545e6b
+# ╠═693df7e1-34a7-4b11-9df5-02cdafea651b
+# ╠═1ca1fc19-9eb4-4f3c-a8e5-9b059bec02bf
 # ╠═d9d39c0c-a1fc-4294-b5bf-ba2bfdcc3068
 # ╠═de0183b1-a794-4260-b3dc-a84ac4d889f5
 # ╠═64de6299-c69c-409d-bcb9-dd5ce09ae0b5
@@ -382,3 +649,37 @@ pts = extract_plane_points(cc_labels)
 # ╠═b8c0bc97-bf63-4a31-b500-a39ca8e77b3d
 # ╠═c495ba88-fc99-4a78-ab85-c324cbca495b
 # ╠═02f19951-5077-4744-9d18-4b99d6ec33e3
+# ╟─cea55170-b870-42dc-93c5-ce796039cc10
+# ╠═dece0067-9ddd-47c5-85f8-a016e8db620f
+# ╠═8bb9db58-d77d-4ed3-94a4-78894a0baa13
+# ╟─0a2474e4-0a23-4452-b222-0dce95b41bcd
+# ╠═11328d2a-cec1-4c81-8558-686950717939
+# ╠═3af82fb8-a8b1-4f43-95ba-9260bc7beb5c
+# ╠═32c5fe98-c82a-44c8-ab88-2dce146fa28a
+# ╠═31e877f0-b96d-467d-8c47-9733d69f2346
+# ╟─08b9e104-57fa-4807-843e-5ef958079375
+# ╟─313a9618-f56d-49e3-aa07-4741421beb65
+# ╟─8ff22fa9-5891-4705-8f17-d6d95a36e4c2
+# ╠═f5fe79b0-eede-49b4-bec8-6ce8d61026b5
+# ╠═c8ed7211-5b67-44ce-bf8f-f6b65806fc57
+# ╟─01dbc828-4fa7-48d4-8a0a-edb275e8f715
+# ╠═ce8494e6-43ab-40a5-82dd-ea64710184f9
+# ╠═6f432a37-327e-4ef7-9497-8f34e2544f83
+# ╠═cbcaa4fb-2c0b-48e6-b018-d1b4a31409f1
+# ╠═02fb9d18-4686-4c73-a2eb-eaf8b0f5c012
+# ╟─db4672ce-933a-4aa8-9220-1e263ea540dd
+# ╟─f2bd880f-e79d-4831-9f8d-65b5f4e1ba68
+# ╟─6eadda32-c20e-4429-ab4f-6480facd988e
+# ╠═83b3c3c3-4c91-48ed-909b-aafdce1427f9
+# ╟─be7a5329-1147-4889-a2d7-d07005369e4b
+# ╠═4c130872-3a57-40a3-8c43-51e46b963b69
+# ╠═a52ce3c2-3a82-4124-a260-0e1497038cd2
+# ╠═22fcd352-feaa-450d-9aa4-0f8863a81b50
+# ╠═54fcf8a4-b397-4d38-a953-fdf575c44f71
+# ╠═f869c063-e18f-4936-92e7-7cadc22768de
+# ╠═3e54e379-9513-4741-9ade-657741be2615
+# ╟─728cf85d-7200-41b7-850b-cc68f17f68cb
+# ╠═60586f95-2a4d-46cf-b568-b589d0700854
+# ╠═fdcb9783-0652-4651-8900-84bc81a686a7
+# ╠═5ad5b33e-4f1a-40ad-851e-0fd170651006
+# ╠═8d7d7e3f-9e23-4c01-9b8b-41b1e10f2bf8
