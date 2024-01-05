@@ -30,7 +30,7 @@ using PlutoUI: bind, TableOfContents, Slider
 
 # ╔═╡ cd5ede11-8d2b-43a9-bb6f-5768dd3e7f33
 # ╠═╡ show_logs = false
-using CairoMakie: Figure, Axis, heatmap!, scatter!, hist!
+using CairoMakie: Figure, Axis, heatmap!, scatter!, hist!, heatmap
 
 # ╔═╡ 33307f19-7302-4c79-9c69-573996c678d6
 using ImageMorphology: label_components, component_centroids, component_boxes
@@ -59,6 +59,12 @@ using CalciumScoring: VolumeFraction, Agatston, score
 # ╔═╡ d9d39c0c-a1fc-4294-b5bf-ba2bfdcc3068
 using DICOM: dcmdir_parse
 
+# ╔═╡ f0ef6fa8-330e-43f7-82b7-9c8e3d95f3f9
+using DICOM # this is for tag".." functionality
+
+# ╔═╡ 290cab94-c73b-4d63-82eb-90fbfd0ee57c
+using LinearAlgebra
+
 # ╔═╡ de0183b1-a794-4260-b3dc-a84ac4d889f5
 # ╠═╡ show_logs = false
 include(srcdir("active_contours.jl"));
@@ -66,25 +72,130 @@ include(srcdir("active_contours.jl"));
 # ╔═╡ 64de6299-c69c-409d-bcb9-dd5ce09ae0b5
 TableOfContents()
 
+# ╔═╡ d7008c7d-1d26-4f62-8d01-2a32242b7e54
+md"""
+# Calibration
+"""
+
+# ╔═╡ cbf70317-1ec3-45e0-bee9-831df955519b
+md"""
+## Load
+"""
+
+# ╔═╡ 9ab1fb7e-f7b0-4d55-84a1-41178bf92e34
+begin
+	cal_path_le = "/Volumes/USB DISK/calibration/Spectral 0.5  50 Mono/4"
+	cal_path_he = "/Volumes/USB DISK/calibration/Spectral 0.5  50 Mono/4"
+end
+
+# ╔═╡ 37982cc4-d1c8-4485-b1fe-23704ffed31b
+begin
+	dcms_cal_le = dcmdir_parse(cal_path_le)
+	dcms_cal_he = dcmdir_parse(cal_path_he)
+end
+
+# ╔═╡ cd00f90b-93ac-4b8d-8695-f70c1143418e
+begin
+	header_cal_le = dcms_cal_le[1].meta
+	header_cal_he = dcms_cal_he[1].meta
+end;
+
+# ╔═╡ 011d3dcc-32f4-45f4-a15c-1589fad4d9ce
+begin
+	dcm_cal_le = header_cal_le[tag"PixelData"]
+	dcm_cal_he = header_cal_he[tag"PixelData"]
+end;
+
+# ╔═╡ 943402ca-853a-49cb-a3a7-e19a414584ab
+md"""
+## Visualize
+"""
+
+# ╔═╡ 4f6abe08-4b1f-42ca-8bcc-f9b204c28a8c
+begin
+	# calibration_cv = chan_vese(dcm_cal_le);
+	calibration_cv = dcm_cal_le .> -1000
+end;
+
+# ╔═╡ 6a84ea41-9548-4595-88b2-482fd2120d95
+hw = div(size(dcm_cal_le, 3), 2)
+
+# ╔═╡ fc25f361-21b8-42b9-8227-8e4cfb06b07f
+calibration_cv_slice = calibration_cv[:, :, hw];
+
+# ╔═╡ 988276b3-d575-42b2-99e8-8cc5dc2a3915
+cal_components_cv = label_components(calibration_cv_slice);
+
+# ╔═╡ 87c38e85-d9dd-4de2-af20-855689c56a7d
+@bind z1_cal Slider(axes(dcm_cal_le, 3), default=div(size(dcm_cal_le, 3), 2), show_value=true)
+
+# ╔═╡ 5a063a55-2fe4-4a71-b672-365e1ff43464
+offset = 10
+
+# ╔═╡ 99b110a4-0698-4fd1-b4ef-45749453d991
+begin
+	_overlaid = dcm_cal_le .* calibration_cv
+	overlaid = _overlaid[:, :, (hw - offset):(hw + offset)]
+	overlaid_slice = _overlaid[:, :, hw]
+end;
+
+# ╔═╡ 3540a1ab-d70b-4b0c-91dc-ff5ff7d101c5
+md"""
+## Segment
+"""
+
+# ╔═╡ 20cfd60e-670e-414d-980c-562416863424
+thresh1 = 1900
+
+# ╔═╡ 92f2b0a4-2072-416b-82bc-6f45e7beef53
+cal_mask1 = overlaid_slice .> thresh1;
+
+# ╔═╡ 6d0da612-e6d0-4c44-b79a-5d247cbf4c63
+cal_components1 = label_components(cal_mask1);
+
+# ╔═╡ 5657fcdf-b46a-4224-971e-dd3fe30a84b2
+thresh2 = 1500
+
+# ╔═╡ 96c48381-2621-4ba9-b65e-b2416c1987c5
+cal_mask2 = (overlaid_slice .> thresh2) .& (overlaid_slice .< thresh1 + 100);
+
+# ╔═╡ fb43e7cf-6491-452f-b733-5fef2993ffca
+cal_components2 = label_components(cal_mask2);
+
+# ╔═╡ 5d1ed767-9dd3-4b0f-9c5f-f7255f3da9eb
+thresh3 = 1100
+
+# ╔═╡ aac846b4-c132-44b9-b394-ddd2faa99fdd
+cal_mask3 = (overlaid_slice .> thresh3) .& (overlaid_slice .< thresh2 + 200);
+
+# ╔═╡ 0ba1cdff-d35e-4d16-af57-17a782ebb168
+cal_components3 = label_components(cal_mask3);
+
+# ╔═╡ c7bbdbd9-6dac-4dd7-8615-72b701f75b86
+@bind z3_cal Slider(axes(dcm_cal_le, 3), default=div(size(dcm_cal_le, 3), 2), show_value=true)
+
 # ╔═╡ 5494e7c6-4f57-4e20-a2ec-964580b69740
 md"""
 # Load DICOM(s)
 """
 
 # ╔═╡ 31840a2d-99de-4dbd-913d-d4e9ceb9459a
-root = "/Volumes/USB DISK/b"
+root = "/Volumes/USB DISK/b/"
 
 # ╔═╡ 0b3c923a-2440-446f-8169-1c3813012d5d
-output_path = joinpath(root, "Cardiac 0.5", "14")
+output_path_le = joinpath(root, "Spectral 0.5  50 Mono", "4")
+
+# ╔═╡ 23723c91-2c80-4f06-922f-2ab37a8a26ac
+# "/4/X1208952"
 
 # ╔═╡ f68dd63d-fec7-48cb-b49d-536fa1eb0a14
-dcms = dcmdir_parse(output_path)
+dcms_le = dcmdir_parse(output_path_le)
 
 # ╔═╡ 118433ed-6b47-4906-b8fe-1b4602aa50be
-header = dcms[1].meta;
+header_le = dcms_le[1].meta;
 
 # ╔═╡ 59acf8dd-0157-44c2-a7e8-b4c45abe00b2
-dcm_arr = header[tag"PixelData"];
+dcm_arr_le = header_le[tag"PixelData"];
 
 # ╔═╡ d9030aa1-1ce1-4ed4-8863-7c681784ca2e
 pixel_size = [0.5, 0.5, 0.5]
@@ -153,6 +264,121 @@ function centroids_from_mask(mask)
 		new_mask[i] = 1
 	end
 	centroids = Int.(round.(component_centroids(label_components(new_mask))[end]))
+end
+
+# ╔═╡ 73eb9f03-637b-4200-ab18-785f95e808ca
+centroid_cv = centroids_from_mask(cal_components_cv);
+
+# ╔═╡ 91305d5b-d176-4d3e-8645-70073e7301d4
+let
+	f = Figure(size = (700, 500))
+
+	ax = Axis(
+		f[1, 1],
+		title = "Low Energy"
+	)
+	heatmap!(dcm_cal_le[:, :, z1_cal], colormap=:grays)
+	scatter!(centroid_cv)
+
+	ax = Axis(
+		f[1, 2],
+		title = "High Energy (Overlaid Chan Vese)"
+	)
+	heatmap!(dcm_cal_he[:, :, z1_cal], colormap=:grays)
+	heatmap!(calibration_cv[:, :, z1_cal], colormap=(:jet, 0.5))
+
+	f
+end
+
+# ╔═╡ 2f0ef93e-006d-4f71-9cc2-2ca25a57a3f9
+centroid1 = centroids_from_mask(cal_components1);
+
+# ╔═╡ 1bd3104a-9565-44d9-8db0-0b6890aea253
+centroid2 = centroids_from_mask(cal_components2);
+
+# ╔═╡ 88c40975-e33e-494a-b8a7-dd94e44272cb
+centroid3 = centroids_from_mask(cal_components3);
+
+# ╔═╡ 1b672abc-b71b-4c6b-8e80-5ee90b514f68
+begin
+	function find_octagon_center(A, B, C)
+	    # Midpoints of AB and BC
+	    mid_AB = (A .+ B) ./ 2
+	    mid_BC = (B .+ C) ./ 2
+	    
+	    # Slopes of AB and BC
+	    slope_AB = (B[2] - A[2]) / (B[1] - A[1])
+	    slope_BC = (C[2] - B[2]) / (C[1] - B[1])
+	    
+	    # Slopes of the perpendicular bisectors
+	    perp_slope_AB = -1 / slope_AB
+	    perp_slope_BC = -1 / slope_BC
+	    
+	    # Equations of the perpendicular bisectors in the form y = mx + c
+	    # We calculate the 'c' for both lines
+	    c_AB = mid_AB[2] - perp_slope_AB * mid_AB[1]
+	    c_BC = mid_BC[2] - perp_slope_BC * mid_BC[1]
+	    
+		# Solve the linear equations to find the intersection point (center of the octagon)
+	    A_matrix = [1 -perp_slope_AB; 1 -perp_slope_BC]
+	    b_vector = [c_AB; c_BC]
+	    
+	    center = A_matrix \ b_vector
+	    return center
+	end
+	
+	# Given centroids as tuples
+	A = centroid1
+	B = centroid2
+	C = centroid3
+	
+	# Calculate the center of the octagon
+	octagon_center = find_octagon_center(A, B, C)
+	
+	# Calculate the radius from the center to any of the known corners
+	radius = norm(A .- octagon_center)
+	
+	# Initialize an array to store the centroids of all corners of the octagon
+	centroids_cal = [A, B, C]
+	
+	# Calculate the centroids of the remaining corners
+	# Starting from the last known corner and rotating by -3π/4 radians each time
+	for i in 1:10
+	    # The angle of the last known centroid from the horizontal
+	    last_angle = atan(C[2] - octagon_center[2], C[1] - octagon_center[1])
+	    
+	    # Calculate the new angle for the next centroid
+	    new_angle = last_angle - (3π / 4) * i
+	
+	    # Calculate the new centroid based on the new angle
+	    new_centroid_x = octagon_center[1] + radius * cos(new_angle)
+	    new_centroid_y = octagon_center[2] + radius * sin(new_angle)
+	
+	    # Round the centroids to the nearest integer before converting
+	    rounded_centroid_x = round(Int, new_centroid_x)
+	    rounded_centroid_y = round(Int, new_centroid_y)
+	
+	    # Append the new centroid to the list of centroids
+	    push!(centroids_cal, (rounded_centroid_x, rounded_centroid_y))
+	end
+
+	centroids_cal = centroids_cal[4:end]
+end
+
+# ╔═╡ 5b7ac3e2-fda1-44ed-bec4-338ee6428a6f
+let
+	f = Figure()
+
+	ax = Axis(
+		f[1, 1],
+		title = "Low Energy"
+	)
+	heatmap!(dcm_cal_le[:, :, z3_cal], colormap=:grays)
+	for i in eachindex(centroids_cal)
+		scatter!(centroids_cal[i])
+	end
+	
+	f
 end
 
 # ╔═╡ 5de49946-026c-48d0-a7d0-70c293032524
@@ -592,14 +818,49 @@ a_agatston, a_volume, a_mass = score(overlayed_mask, pixel_size, mass_cal_factor
 # ╠═5f0d1e1a-d7ba-4cf0-94f4-c2c160545e6b
 # ╠═1ca1fc19-9eb4-4f3c-a8e5-9b059bec02bf
 # ╠═d9d39c0c-a1fc-4294-b5bf-ba2bfdcc3068
+# ╠═f0ef6fa8-330e-43f7-82b7-9c8e3d95f3f9
 # ╠═de0183b1-a794-4260-b3dc-a84ac4d889f5
 # ╠═64de6299-c69c-409d-bcb9-dd5ce09ae0b5
+# ╟─d7008c7d-1d26-4f62-8d01-2a32242b7e54
+# ╟─cbf70317-1ec3-45e0-bee9-831df955519b
+# ╠═9ab1fb7e-f7b0-4d55-84a1-41178bf92e34
+# ╠═37982cc4-d1c8-4485-b1fe-23704ffed31b
+# ╠═cd00f90b-93ac-4b8d-8695-f70c1143418e
+# ╠═011d3dcc-32f4-45f4-a15c-1589fad4d9ce
+# ╟─943402ca-853a-49cb-a3a7-e19a414584ab
+# ╠═4f6abe08-4b1f-42ca-8bcc-f9b204c28a8c
+# ╠═6a84ea41-9548-4595-88b2-482fd2120d95
+# ╠═fc25f361-21b8-42b9-8227-8e4cfb06b07f
+# ╠═988276b3-d575-42b2-99e8-8cc5dc2a3915
+# ╠═73eb9f03-637b-4200-ab18-785f95e808ca
+# ╟─87c38e85-d9dd-4de2-af20-855689c56a7d
+# ╟─91305d5b-d176-4d3e-8645-70073e7301d4
+# ╠═5a063a55-2fe4-4a71-b672-365e1ff43464
+# ╠═99b110a4-0698-4fd1-b4ef-45749453d991
+# ╟─3540a1ab-d70b-4b0c-91dc-ff5ff7d101c5
+# ╠═290cab94-c73b-4d63-82eb-90fbfd0ee57c
+# ╠═20cfd60e-670e-414d-980c-562416863424
+# ╠═92f2b0a4-2072-416b-82bc-6f45e7beef53
+# ╠═6d0da612-e6d0-4c44-b79a-5d247cbf4c63
+# ╠═2f0ef93e-006d-4f71-9cc2-2ca25a57a3f9
+# ╠═5657fcdf-b46a-4224-971e-dd3fe30a84b2
+# ╠═96c48381-2621-4ba9-b65e-b2416c1987c5
+# ╠═fb43e7cf-6491-452f-b733-5fef2993ffca
+# ╠═1bd3104a-9565-44d9-8db0-0b6890aea253
+# ╠═5d1ed767-9dd3-4b0f-9c5f-f7255f3da9eb
+# ╠═aac846b4-c132-44b9-b394-ddd2faa99fdd
+# ╠═0ba1cdff-d35e-4d16-af57-17a782ebb168
+# ╠═88c40975-e33e-494a-b8a7-dd94e44272cb
+# ╠═1b672abc-b71b-4c6b-8e80-5ee90b514f68
+# ╟─c7bbdbd9-6dac-4dd7-8615-72b701f75b86
+# ╟─5b7ac3e2-fda1-44ed-bec4-338ee6428a6f
 # ╟─5494e7c6-4f57-4e20-a2ec-964580b69740
 # ╠═31840a2d-99de-4dbd-913d-d4e9ceb9459a
 # ╠═0b3c923a-2440-446f-8169-1c3813012d5d
+# ╠═23723c91-2c80-4f06-922f-2ab37a8a26ac
 # ╠═f68dd63d-fec7-48cb-b49d-536fa1eb0a14
-# ╠═59acf8dd-0157-44c2-a7e8-b4c45abe00b2
 # ╠═118433ed-6b47-4906-b8fe-1b4602aa50be
+# ╠═59acf8dd-0157-44c2-a7e8-b4c45abe00b2
 # ╠═d9030aa1-1ce1-4ed4-8863-7c681784ca2e
 # ╟─4511769f-07af-4582-8f3d-f43ee8de48b4
 # ╟─a4ef8928-7c3f-447f-b2d0-540d7e2d0fab
