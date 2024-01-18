@@ -1,4 +1,5 @@
 using GLM, MLJBase
+using MLJ: rms
 
 function collect_tuple(tuple_array)
     row_num = size(tuple_array)

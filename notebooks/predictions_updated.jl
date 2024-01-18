@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.27
+# v0.19.36
 
 using Markdown
 using InteractiveUtils
@@ -15,6 +15,7 @@ using DrWatson
 @quickactivate "cac-dual-energy"
 
 # ╔═╡ 0c4ba5cc-8e40-40c6-b596-785973bbc74e
+# ╠═╡ show_logs = false
 using PlutoUI, CairoMakie, Statistics, CSV, DataFrames, DICOM, CSVFiles, Printf
 
 # ╔═╡ a9c366d0-e90a-406c-b970-3d5a76bc7973
@@ -1308,23 +1309,9 @@ md"""
 # Analyze
 """
 
-# ╔═╡ 3baf66b0-5e25-43d2-9b53-6b2d35f268a7
-medphys_theme = Theme(
-    Axis = (
-        backgroundcolor = :white,
-		xgridcolor = :gray,
-		xgridwidth = 0.1,
-		xlabelsize = 15,
-		xticklabelsize = 15,
-		ygridcolor = :gray,
-		ygridwidth = 0.1,
-		ylabelsize = 15,
-		yticklabelsize = 15,
-		bottomsplinecolor = :black,
-		leftspinecolor = :black,
-		titlesize = 25
-	)
-);
+# ╔═╡ e8ea64f4-bfa9-423a-a817-0268072746e8
+# ╠═╡ show_logs = false
+# using MLJ: rms
 
 # ╔═╡ c3919e4d-c474-4aeb-bdc8-76e139e1d8c2
 md"""
@@ -1353,6 +1340,24 @@ co_1_low_vf, r_squared_1_low_vf, rms_values_1_low_vf, pred_1_low_vf = calculate_
 
 # ╔═╡ 7b6def43-c729-4698-a752-9d37f182e816
 co_1_low_a, r_squared_1_low_a, rms_values_1_low_a, pred_1_low_a = calculate_coefficients(new_df_low_a);
+
+# ╔═╡ 3baf66b0-5e25-43d2-9b53-6b2d35f268a7
+medphys_theme = Theme(
+    Axis = (
+        backgroundcolor = :white,
+		xgridcolor = :gray,
+		xgridwidth = 0.1,
+		xlabelsize = 12,
+		xticklabelsize = 15,
+		ygridcolor = :gray,
+		ygridwidth = 0.1,
+		ylabelsize = 12,
+		yticklabelsize = 15,
+		bottomsplinecolor = :black,
+		leftspinecolor = :black,
+		titlesize = 15
+	)
+);
 
 # ╔═╡ 1cb3b222-e86d-41a5-98f0-d4faa9363e87
 function accuracy_low()
@@ -1444,8 +1449,8 @@ function accuracy_low()
 	
 	for (label, layout) in zip([["A"], ["B"], ["C"]], [f[1,1], f[2, 1], f[3, 1]])
 	    Label(layout[1, 1, TopLeft()], label,
-	        fontsize = 25,
-	        padding = (0, 60, 25, 0),
+	        fontsize = 20,
+	        padding = (0, 70, 0, 0),
 	        halign = :right)
 	end
 	f
@@ -1734,8 +1739,8 @@ function accuracy_high()
 	
 	for (label, layout) in zip([["A"], ["B"], ["C"]], [f[1,1], f[2, 1], f[3, 1]])
 	    Label(layout[1, 1, TopLeft()], label,
-	        fontsize = 25,
-	        padding = (0, 60, 25, 0),
+	        fontsize = 20,
+	        padding = (0, 70, 0, 0),
 	        halign = :right)
 	end
 	f
@@ -1924,7 +1929,7 @@ function accuracy_combined()
 		f[1, 1],
 		xticks = collect(-5:10:25),
 		yticks = collect(-5:10:25),
-		title = "Material Decomposition (Low)",
+		title = "Material \nDecomposition (Low)",
 	)
 	
 	df = new_df_low_md
@@ -1999,7 +2004,7 @@ function accuracy_combined()
 		f[1, 2],
 		xticks = collect(-50:100:250),
 		yticks = collect(-50:100:250),
-		title = "Material Decomposition (High)",
+		title = "Material \nDecomposition (High)",
 	)
 	
 	df = new_df_high_md
@@ -2071,7 +2076,7 @@ function accuracy_combined()
 	f[2, 3] = Legend(f, [sc1, sc2, sc3, ln1, ln2], ["Large Inserts", "Medium Inserts", "Small Inserts", "Unity", "Fitted Line"], framevisible = false)
 
 	Label(
-		f[2, 0],
+		f[1:end, 0],
 		"Calculated Mass (mg)",
 		rotation = pi/2,
 		fontsize = 12
@@ -2231,7 +2236,7 @@ sensitivity_specificity_combined()
 # ╟─82712845-c2ba-49f1-a8ad-9127cbc321b2
 # ╠═a1289bbb-21b8-471e-9116-86f04f53c085
 # ╠═ea5853a5-5cd8-4017-824c-c1a9c945b357
-# ╠═66d07988-d98a-4bab-8243-33d6f4485cf0
+# ╟─66d07988-d98a-4bab-8243-33d6f4485cf0
 # ╠═c93775d8-3422-4ad1-9f40-6d57477d8425
 # ╠═636abeda-6c10-4d21-ae08-10e1274b77a1
 # ╠═d0b1613e-890e-417d-b7eb-57b0bc9fafe2
@@ -2255,10 +2260,10 @@ sensitivity_specificity_combined()
 # ╟─e0c01bd6-0cec-408d-b534-cf36cb5bd78a
 # ╠═6952fc87-c733-4e67-b1aa-ec9dd46ebe3d
 # ╟─1a70a6e7-108d-477e-b1a5-7e755cbc0619
+# ╠═e8ea64f4-bfa9-423a-a817-0268072746e8
 # ╠═d7e045fc-ac9c-4f53-836e-aedcadad1fbe
 # ╠═95509262-a9a1-41b6-972d-e7dcf7bb2371
 # ╠═b98db832-06bd-492f-8ca4-38e298086c8a
-# ╠═3baf66b0-5e25-43d2-9b53-6b2d35f268a7
 # ╟─c3919e4d-c474-4aeb-bdc8-76e139e1d8c2
 # ╟─fef76b74-ddfe-4578-9ccc-a8ff68b60137
 # ╠═6d84cb36-80cf-43af-b100-caab847b347a
@@ -2267,7 +2272,8 @@ sensitivity_specificity_combined()
 # ╠═c9f166c4-1269-42c5-85fb-21e0786a2ec5
 # ╠═2f742443-0dd4-4d25-90ff-4c7941cba0a2
 # ╠═7b6def43-c729-4698-a752-9d37f182e816
-# ╟─1cb3b222-e86d-41a5-98f0-d4faa9363e87
+# ╠═3baf66b0-5e25-43d2-9b53-6b2d35f268a7
+# ╠═1cb3b222-e86d-41a5-98f0-d4faa9363e87
 # ╟─c23d6948-d28a-4c66-ae2d-78686082e5f3
 # ╟─6fb4896c-a086-4ef1-bbb7-1f1603338b3c
 # ╠═7d218b4c-d467-4317-b239-a96de01a9d81
@@ -2278,7 +2284,7 @@ sensitivity_specificity_combined()
 # ╠═7873647b-d7f8-4d8c-89d7-f15c8d64653a
 # ╠═5ca5e077-3900-4948-9136-8e1b907758b1
 # ╟─ca5d95fe-ae81-41e5-9a54-ddc81962f2a3
-# ╠═f1a8465b-aea5-46a5-ab95-ef181096a682
+# ╟─f1a8465b-aea5-46a5-ab95-ef181096a682
 # ╟─2c0270a0-36e9-4b9d-855b-834aa443a808
 # ╟─d9e33929-635a-450b-aa08-7ce0a6ee1170
 # ╠═8a315d66-ff37-4e7d-9439-10567aabcd90
